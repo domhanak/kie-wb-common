@@ -19,10 +19,65 @@
     BPMN shape styles.
     ******************
  */
+ #gateway-background #background,
+ #gateway-type #gateway,
+ #gateway-subtypes #complex,
+ #gateway-subtypes #event,
+ #gateway-subtypes #exclusive,
+ #gateway-subtypes #inclusive,
+ #gateway-subtypes #parallel,
+ #gateway-subtypes #parallel-event {
+     opacity: 0;
+     display: inline;
+ }
+
+#parallelMultipleGateway #background {
+     opacity: 1;
+     fill: #fef4ea;
+}
+#parallelMultipleGateway #gateway {
+     opacity: 1;
+     fill: #ec7a08;
+}
+#parallelMultipleGateway #parallel {
+     opacity: 1;
+     fill: #ec7a08;
+}
+
+
+#exclusiveGateway #background {
+     opacity: 1;
+     fill: #fef4ea;
+     filter: none;
+}
+
+#exclusiveGateway #gateway {
+     opacity: 1;
+     fill: #ec7a08;
+}
+#exclusiveGateway #exclusive {
+     opacity: 1;
+     fill: #ec7a08;
+}
+
+#inclusiveGateway #background {
+     opacity: 1;
+     fill: #fef4ea;
+}
+#inclusiveGateway #gateway {
+     opacity: 1;
+     fill: #ec7a08;
+}
+#inclusiveGateway #inclusive {
+     opacity: 1;
+     fill: #ec7a08;
+}
+
+/*********************
 .gateway {
     fill: #FDF4EA;
     stroke: #EC7A08;
-    stroke-width: 5px;
+    stroke-width: 16px;
 }
 
 .gateway_group_parallel_multiple {
@@ -63,6 +118,7 @@
 #inclusiveGateway .gateway_group_inclusive {
     opacity: 1;
 }
+**********************/
 
 .lane {
     fill: #f2f2f2;
@@ -115,6 +171,251 @@
     opacity: 1;
 }
 
+
+
+#event-background #background,
+#event-type #intermediate-noninterrupting,
+#event-type #intermediate,
+#event-type #end,
+#event-type #end_1_,
+#event-type #start,
+#event-type #start-noninterrupting,
+#event-subtypes #cancel-throwing,
+#event-subtypes #cancel-catching,
+#event-subtypes #compensation-throwing,
+#event-subtypes #compensation-catching,
+#event-subtypes #conditional-catching,
+#event-subtypes #conditional-throwing,
+#event-subtypes #end,
+#event-subtypes #end_1_,
+#event-subtypes #error-throwing,
+#event-subtypes #error-catching,
+#event-subtypes #escalation-throwing,
+#event-subtypes #escalation-catching,
+#event-subtypes #link-throwing,
+#event-subtypes #link-catching,
+#event-subtypes #message-throwing,
+#event-subtypes #message-catching,
+#event-subtypes #multiple-throwing,
+#event-subtypes #multiple-catching,
+#event-subtypes #parallel-multiple-throwing,
+#event-subtypes #parallel-multiple-catching,
+#event-subtypes #signal-throwing,
+#event-subtypes #signal-catching,
+#event-subtypes #wait   {
+    opacity: 0;
+}
+#startNoneEvent #background {
+    opacity: 1;
+    fill: #e8fae6;
+}
+#startNoneEvent #start {
+    opacity: 1;
+    fill: #4aa241;
+}
+
+#startSignalEvent #background {
+    opacity: 1;
+    fill: #e8fae6;
+}
+#startSignalEvent #start {
+    opacity: 1;
+    fill: #4aa241;
+}
+#startSignalEvent #signal-catching {
+    opacity: 1;
+    fill: #4aa241;
+}
+
+
+#startMessageEvent #background {
+    opacity: 1;
+    fill: #e8fae6;
+}
+#startMessageEvent #start {
+    opacity: 1;
+    fill: #4aa241;
+}
+#startMessageEvent #message-catching {
+    opacity: 1;
+    fill: #4aa241;
+}
+
+
+#startTimerEvent #background {
+    opacity: 1;
+    fill: #e8fae6;
+}
+#startTimerEvent #start {
+    opacity: 1;
+    fill: #4aa241;
+}
+#startTimerEvent #wait {
+    opacity: 1;
+    fill: #4aa241;
+}
+
+
+#startErrorEvent #background {
+    opacity: 1;
+    fill: #e8fae6;
+}
+#startErrorEvent #start {
+    opacity: 1;
+    fill: #4aa241;
+}
+#startErrorEvent #error-catching {
+    opacity: 1;
+    fill: #4aa241;
+}
+
+
+#intermediateTimerEvent #background {
+    opacity: 1;
+    fill: #fbefcf;
+}
+#intermediateTimerEvent #intermediate {
+    opacity: 1;
+    fill: #e5a000;
+}
+#intermediateTimerEvent #wait {
+    opacity: 1;
+    fill: #e5a000;
+}
+
+#intermediateSignalCatchingEvent #background {
+    opacity: 1;
+    fill: #fbefcf;
+}
+#intermediateSignalCatchingEvent #intermediate {
+    opacity: 1;
+    fill: #e5a000;
+}
+#intermediateSignalCatchingEvent #signal-catching {
+    opacity: 1;
+    fill: #e5a000;
+}
+
+#intermediateMessageCatchingEvent #background {
+    opacity: 1;
+    fill: #fbefcf;
+}
+#intermediateMessageCatchingEvent #intermediate {
+    opacity: 1;
+    fill: #e5a000;
+}
+#intermediateMessageCatchingEvent #message-catching {
+    opacity: 1;
+    fill: #e5a000;
+}
+
+#intermediateErrorCatchingEvent #background {
+    opacity: 1;
+    fill: #fbefcf;
+}
+#intermediateErrorCatchingEvent #intermediate {
+    opacity: 1;
+    fill: #e5a000;
+}
+#intermediateErrorCatchingEvent #error-catching {
+    opacity: 1;
+    fill: #e5a000;
+}
+
+#intermediateSignalThrowingEvent #background {
+    opacity: 1;
+    fill: #bedee1;
+}
+#intermediateSignalThrowingEvent #intermediate {
+    opacity: 1;
+    fill: #007a87;
+}
+#intermediateSignalThrowingEvent #signal-throwing {
+    opacity: 1;
+    fill: #007a87;
+
+}
+
+#intermediateMessageThrowingEvent #background {
+    opacity: 1;
+    fill: #bedee1;
+}
+#intermediateMessageThrowingEvent #intermediate {
+    opacity: 1;
+    fill: #007a87;
+}
+#intermediateMessageThrowingEvent #message-throwing {
+    opacity: 1;
+    fill: #007a87;
+}
+
+
+#endNoneEvent #background {
+    opacity: 0.5;
+    fill: #fce7e7;
+}
+#endNoneEvent #end {
+    opacity: 1;
+    fill: #a30000;
+}
+
+
+#endSignalEvent #background {
+    opacity: 0.5;
+    fill: #fce7e7;
+}
+#endSignalEvent #end {
+    opacity: 1;
+    fill: #a30000;
+}
+#endSignalEvent #signal-catching {
+    opacity: 1;
+    fill: #a30000;
+}
+
+
+#endMessageEvent #background {
+    opacity: 0.5;
+    fill: #fce7e7;
+}
+#endMessageEvent #end {
+    opacity: 1;
+    fill: #a30000;
+}
+#endMessageEvent #message-catching {
+    opacity: 1;
+    fill: #a30000;
+}
+
+
+#endTerminateEvent #background {
+    opacity: 0.5;
+    fill: #fce7e7;
+}
+#endTerminateEvent #end {
+    opacity: 1;
+    fill: #a30000;
+}
+#endTerminateEvent #end_1_ {
+    opacity: 1;
+    fill: #a30000;
+}
+
+#endErrorEvent #background {
+    opacity: 0.5;
+    fill: #fce7e7;
+}
+#endErrorEvent #end {
+    opacity: 1;
+    fill: #a30000;
+}
+#endErrorEvent #error-throwing {
+    opacity: 1;
+    fill: #a30000;
+}
+
+
+/***************
 .eventAll {
     stroke-width: 1.5px;
 }
@@ -461,6 +762,8 @@
 #endErrorEvent .eventAll_group_error {
     opacity: 1;
 }
+*************************/
+
 
 .subProcess {
     fill: #FFFFFF;
@@ -549,11 +852,13 @@
  */
 #text {
     opacity: 1;
-    font-family: Verdana;
-    font-size: 10px;
+    font-family: "Open Sans";
+    font-size: 12px;
     fill: #000000;
-    stroke: #000000;
-    stroke-width: 0.5px;
+    stroke: #393f44;
+    stroke-width: 1px;
+    text-align: left;
+    align: left;
 }
 
 /*
@@ -561,12 +866,16 @@
     Global BPMN shape state styles.
     *******************************
  */
-.shape-state-selected {
-    stroke: blue;
+.shape-state-selected svg {
+/* desired behavior is to apply the #selectGlow filter to the svg when the item is selected */
+/* another way to do it is to apply the filter to a copy of the background path in the svg and show/hide that path */
+    filter:url(#selectGlow);
 }
 .shape-state-highlight{
+/* Desired behavior is to gray back everything else */
     stroke: blue;
 }
 .shape-state-invalid {
+/* Desired behavior is to have a cursor change to ban (circle with line through) plus have the invalid items gray out */
     stroke: red;
 }

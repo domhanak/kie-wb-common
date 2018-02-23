@@ -8,11 +8,11 @@
       "name": "Gateway - Parallel Multiple",
       "shape": {
         "path": "shapes/",
-        "file": "gateway.svg"
+        "file": "gateway-consolidated_scaledsubtypes.svg"
       },
       "icon": {
         "path": "icons/gateway/",
-        "file": "parallel_multiple.svg"
+        "file": "gateway-consolidated_scaledsubtypes.svg#parallel"
       }
     },
     {
@@ -20,7 +20,7 @@
       "name": "Gateway - Exclusive",
       "shape": {
         "path": "shapes/",
-        "file": "gateway.svg"
+        "file": "gateway-consolidated_scaledsubtypes.svg"
       },
       "icon": {
         "path": "icons/gateway/",
@@ -32,7 +32,7 @@
       "name": "Gateway - Inclusive",
       "shape": {
         "path": "shapes/",
-        "file": "gateway.svg"
+        "file": "gateway-consolidated_scaledsubtypes.svg"
       },
       "icon": {
         "path": "icons/gateway/",
@@ -156,11 +156,11 @@
       "name": "Start Event",
       "shape": {
         "path": "shapes/",
-        "file": "event-all.svg"
+        "file": "event-consolidated_scaledsubtypes.svg"
       },
       "icon": {
-        "path": "icons/event/",
-        "file": "event-start.svg"
+        "path": "shapes/",
+        "file": "event-consolidated_scaledsubtypes.svg"
       }
     },
     {
@@ -168,11 +168,11 @@
       "name": "Start Event - Signal",
       "shape": {
         "path": "shapes/",
-        "file": "event-all.svg"
+        "file": "event-consolidated_scaledsubtypes.svg"
       },
       "icon": {
         "path": "icons/event/",
-        "file": "event-start.svg",
+        "file": "event-consolidated_scaledsubtypes.svg",
         "refs": "eventSignal"
       }
     },
@@ -181,11 +181,11 @@
       "name": "Start Event - Message",
       "shape": {
         "path": "shapes/",
-        "file": "event-all.svg"
+        "file": "event-consolidated_scaledsubtypes.svg"
       },
       "icon": {
         "path": "icons/event/",
-        "file": "event-start.svg",
+        "file": "event-consolidated_scaledsubtypes.svg",
         "refs": "eventMessage"
       }
     },
@@ -194,11 +194,11 @@
       "name": "Start Event - Timer",
       "shape": {
         "path": "shapes/",
-        "file": "event-all.svg"
+        "file": "event-consolidated_scaledsubtypes.svg"
       },
       "icon": {
         "path": "icons/event/",
-        "file": "event-start.svg",
+        "file": "event-consolidated_scaledsubtypes.svg",
         "refs": "eventTimer"
       }
     },
@@ -207,11 +207,11 @@
       "name": "Start Event - Error",
       "shape": {
         "path": "shapes/",
-        "file": "event-all.svg"
+        "file": "event-consolidated_scaledsubtypes.svg"
       },
       "icon": {
         "path": "icons/event/",
-        "file": "event-start.svg",
+        "file": "event-consolidated_scaledsubtypes.svg",
         "refs": "eventStartError"
       }
     },
@@ -220,11 +220,11 @@
       "name": "Intermediate Event - Timer",
       "shape": {
         "path": "shapes/",
-        "file": "event-all.svg"
+        "file": "event-consolidated_scaledsubtypes.svg"
       },
       "icon": {
         "path": "icons/event/",
-        "file": "event-intermediate.svg",
+        "file": "event-consolidated_scaledsubtypes.svg",
         "refs": "eventTimer"
       }
     },
@@ -233,11 +233,11 @@
       "name": "Catching Intermediate Event - Signal",
       "shape": {
         "path": "shapes/",
-        "file": "event-all.svg"
+        "file": "event-consolidated_scaledsubtypes.svg"
       },
       "icon": {
         "path": "icons/event/",
-        "file": "event-intermediate.svg",
+        "file": "event-consolidated_scaledsubtypes.svg",
         "refs": "eventSignal"
       }
     },
@@ -246,11 +246,11 @@
       "name": "Catching Intermediate Event - Message",
       "shape": {
         "path": "shapes/",
-        "file": "event-all.svg"
+        "file": "event-consolidated_scaledsubtypes.svg"
       },
       "icon": {
         "path": "icons/event/",
-        "file": "event-intermediate.svg",
+        "file": "event-consolidated_scaledsubtypes.svg",
         "refs": "eventMessage"
       }
     },
@@ -259,11 +259,11 @@
       "name": "Catching Intermediate Event - Error",
       "shape": {
         "path": "shapes/",
-        "file": "event-all.svg"
+        "file": "event-consolidated_scaledsubtypes.svg"
       },
       "icon": {
         "path": "icons/event/",
-        "file": "event-intermediate.svg",
+        "file": "event-consolidated_scaledsubtypes.svg",
         "refs": "eventIntermediateError"
       }
     },
@@ -272,11 +272,11 @@
       "name": "Throwing Intermediate Event - Signal",
       "shape": {
         "path": "shapes/",
-        "file": "event-all.svg"
+        "file": "event-consolidated_scaledsubtypes.svg"
       },
       "icon": {
         "path": "icons/event/",
-        "file": "event-intermediate.svg",
+        "file": "event-consolidated_scaledsubtypes.svg",
         "refs": "eventSignal"
       }
     },
@@ -285,11 +285,11 @@
       "name": "Throwing Intermediate Event - Message",
       "shape": {
         "path": "shapes/",
-        "file": "event-all.svg"
+        "file": "event-consolidated_scaledsubtypes.svg"
       },
       "icon": {
         "path": "icons/event/",
-        "file": "event-intermediate.svg",
+        "file": "event-consolidated_scaledsubtypes.svg",
         "refs": "eventMessage"
       }
     },
@@ -298,7 +298,7 @@
       "name": "End Event",
       "shape": {
         "path": "shapes/",
-        "file": "event-all.svg"
+        "file": "event-consolidated_scaledsubtypes.svg"
       },
       "icon": {
         "path": "icons/event/",
@@ -310,7 +310,7 @@
       "name": "End Event - Signal",
       "shape": {
         "path": "shapes/",
-        "file": "event-all.svg"
+        "file": "event-consolidated_scaledsubtypes.svg"
       },
       "icon": {
         "path": "icons/event/",
@@ -323,7 +323,7 @@
       "name": "End Event - Message",
       "shape": {
         "path": "shapes/",
-        "file": "event-all.svg"
+        "file": "event-consolidated_scaledsubtypes.svg"
       },
       "icon": {
         "path": "icons/event/",
@@ -336,7 +336,7 @@
       "name": "End Event - Terminate",
       "shape": {
         "path": "shapes/",
-        "file": "event-all.svg"
+        "file": "event-consolidated_scaledsubtypes.svg"
       },
       "icon": {
         "path": "icons/event/",
@@ -350,7 +350,7 @@
       "name": "End Event - Error",
       "shape": {
         "path": "shapes/",
-        "file": "event-all.svg"
+        "file": "event-consolidated_scaledsubtypes.svg"
       },
       "icon": {
         "path": "icons/event/",
