@@ -31,6 +31,7 @@ import org.kie.workbench.common.screens.explorer.client.utils.Classifier;
 import org.kie.workbench.common.screens.explorer.model.FolderItem;
 import org.kie.workbench.common.screens.explorer.model.FolderItemType;
 import org.kie.workbench.common.screens.library.api.AssetInfo;
+import org.kie.workbench.common.screens.library.api.AssetQueryResult;
 import org.kie.workbench.common.screens.library.api.LibraryService;
 import org.kie.workbench.common.screens.library.api.ProjectAssetsQuery;
 import org.kie.workbench.common.screens.library.client.events.AssetDetailEvent;
@@ -90,6 +91,8 @@ public class ProjectScreenTestBase {
         doReturn("mainModuleName").when(module).getModuleName();
         doReturn("modulePath").when(module).getIdentifier();
         doReturn(rootPath).when(module).getRootPath();
+        final Path pomPath = mock(Path.class);
+        doReturn(pomPath).when(module).getPomXMLPath();
 
         final OrganizationalUnit organizationalUnit = mock(OrganizationalUnit.class);
         final Repository repository = mock(Repository.class);
@@ -133,6 +136,6 @@ public class ProjectScreenTestBase {
                                 FolderItemType.FILE,
                                 "file3.txt"));
 
-        doReturn(assets).when(libraryService).getProjectAssets(any(ProjectAssetsQuery.class));
+        when(libraryService.getProjectAssets(any(ProjectAssetsQuery.class))).thenReturn(AssetQueryResult.normal(assets));
     }
 }

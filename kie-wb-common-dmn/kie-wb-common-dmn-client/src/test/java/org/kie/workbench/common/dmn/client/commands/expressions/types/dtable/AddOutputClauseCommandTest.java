@@ -29,10 +29,11 @@ import org.kie.workbench.common.dmn.api.definition.v1_1.LiteralExpression;
 import org.kie.workbench.common.dmn.api.definition.v1_1.OutputClause;
 import org.kie.workbench.common.dmn.api.definition.v1_1.UnaryTests;
 import org.kie.workbench.common.dmn.client.editors.expressions.types.dtable.DecisionTableUIModelMapper;
+import org.kie.workbench.common.dmn.client.editors.expressions.types.dtable.DecisionTableUIModelMapperHelper;
 import org.kie.workbench.common.dmn.client.editors.expressions.types.dtable.InputClauseColumn;
 import org.kie.workbench.common.dmn.client.editors.expressions.types.dtable.OutputClauseColumn;
+import org.kie.workbench.common.dmn.client.widgets.grid.controls.list.ListSelectorView;
 import org.kie.workbench.common.dmn.client.widgets.grid.model.DMNGridData;
-import org.kie.workbench.common.dmn.client.widgets.layer.DMNGridLayer;
 import org.kie.workbench.common.stunner.core.client.canvas.AbstractCanvasHandler;
 import org.kie.workbench.common.stunner.core.client.command.CanvasCommandResultBuilder;
 import org.kie.workbench.common.stunner.core.client.command.CanvasViolation;
@@ -48,14 +49,12 @@ import org.uberfire.ext.wires.core.grids.client.widget.grid.columns.RowNumberCol
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 @RunWith(MockitoJUnitRunner.class)
 public class AddOutputClauseCommandTest {
-
-    @Mock
-    private DMNGridLayer selectionManager;
 
     @Mock
     private RowNumberColumn uiRowNumberColumn;
@@ -65,6 +64,9 @@ public class AddOutputClauseCommandTest {
 
     @Mock
     private InputClauseColumn uiInputClauseColumn;
+
+    @Mock
+    private ListSelectorView.Presenter listSelector;
 
     @Mock
     private AbstractCanvasHandler canvasHandler;
@@ -88,20 +90,31 @@ public class AddOutputClauseCommandTest {
     @Before
     public void setUp() throws Exception {
         this.dtable = new DecisionTable();
-        this.uiModel = new DMNGridData(selectionManager);
+        this.uiModel = new DMNGridData();
         this.uiModel.appendColumn(uiRowNumberColumn);
         this.outputClause = new OutputClause();
         this.uiModelMapper = new DecisionTableUIModelMapper(() -> uiModel,
-                                                            () -> Optional.of(dtable));
-
-        this.command = new AddOutputClauseCommand(dtable, outputClause, uiModel, uiOutputClauseColumn, uiModelMapper, canvasOperation);
+                                                            () -> Optional.of(dtable),
+                                                            listSelector);
 
         doReturn(0).when(uiRowNumberColumn).getIndex();
         doReturn(1).when(uiOutputClauseColumn).getIndex();
     }
 
+    private void makeCommand(final int index) {
+        this.command = spy(new AddOutputClauseCommand(dtable,
+                                                      outputClause,
+                                                      uiModel,
+                                                      uiOutputClauseColumn,
+                                                      index,
+                                                      uiModelMapper,
+                                                      canvasOperation));
+    }
+
     @Test
     public void testGraphCommandAllow() throws Exception {
+        makeCommand(DecisionTableUIModelMapperHelper.ROW_INDEX_COLUMN_COUNT);
+
         final Command<GraphCommandExecutionContext, RuleViolation> graphCommand = command.newGraphCommand(canvasHandler);
 
         assertEquals(GraphCommandResultBuilder.SUCCESS,
@@ -110,6 +123,8 @@ public class AddOutputClauseCommandTest {
 
     @Test
     public void testGraphCommandCheck() throws Exception {
+        makeCommand(DecisionTableUIModelMapperHelper.ROW_INDEX_COLUMN_COUNT);
+
         final Command<GraphCommandExecutionContext, RuleViolation> graphCommand = command.newGraphCommand(canvasHandler);
 
         assertEquals(GraphCommandResultBuilder.SUCCESS,
@@ -118,6 +133,8 @@ public class AddOutputClauseCommandTest {
 
     @Test
     public void testGraphCommandExecute() throws Exception {
+        makeCommand(DecisionTableUIModelMapperHelper.ROW_INDEX_COLUMN_COUNT);
+
         dtable.getRule().add(new DecisionRule());
         dtable.getRule().add(new DecisionRule());
         assertEquals(0, dtable.getOutput().size());
@@ -141,6 +158,8 @@ public class AddOutputClauseCommandTest {
 
     @Test
     public void testGraphCommandExecuteExistingNotAffected() throws Exception {
+        makeCommand(DecisionTableUIModelMapperHelper.ROW_INDEX_COLUMN_COUNT);
+
         final String ruleOneOldOutput = "old rule 1";
         final String ruleTwoOldOutput = "old rule 2";
 
@@ -150,6 +169,7 @@ public class AddOutputClauseCommandTest {
 
         assertEquals(1, dtable.getOutput().size());
 
+        //Graph command will insert new OutputClause at index 0 of the OutputEntries
         final Command<GraphCommandExecutionContext, RuleViolation> graphCommand = command.newGraphCommand(canvasHandler);
 
         assertEquals(GraphCommandResultBuilder.SUCCESS,
@@ -159,17 +179,19 @@ public class AddOutputClauseCommandTest {
 
         // first rule
         assertEquals(2, dtable.getRule().get(0).getOutputEntry().size());
-        assertEquals(ruleOneOldOutput, dtable.getRule().get(0).getOutputEntry().get(0).getText());
-        assertEquals(AddOutputClauseCommand.OUTPUT_CLAUSE_DEFAULT_VALUE, dtable.getRule().get(0).getOutputEntry().get(1).getText());
+        assertEquals(ruleOneOldOutput, dtable.getRule().get(0).getOutputEntry().get(1).getText());
+        assertEquals(AddOutputClauseCommand.OUTPUT_CLAUSE_DEFAULT_VALUE, dtable.getRule().get(0).getOutputEntry().get(0).getText());
 
         // second rule
         assertEquals(2, dtable.getRule().get(1).getOutputEntry().size());
-        assertEquals(ruleTwoOldOutput, dtable.getRule().get(1).getOutputEntry().get(0).getText());
-        assertEquals(AddOutputClauseCommand.OUTPUT_CLAUSE_DEFAULT_VALUE, dtable.getRule().get(1).getOutputEntry().get(1).getText());
+        assertEquals(ruleTwoOldOutput, dtable.getRule().get(1).getOutputEntry().get(1).getText());
+        assertEquals(AddOutputClauseCommand.OUTPUT_CLAUSE_DEFAULT_VALUE, dtable.getRule().get(1).getOutputEntry().get(0).getText());
     }
 
     @Test(expected = ArrayIndexOutOfBoundsException.class)
     public void testGraphCommandUndoNoOutputClauseColumns() throws Exception {
+        makeCommand(DecisionTableUIModelMapperHelper.ROW_INDEX_COLUMN_COUNT);
+
         dtable.getRule().add(new DecisionRule());
 
         assertEquals(0, dtable.getOutput().size());
@@ -182,6 +204,8 @@ public class AddOutputClauseCommandTest {
 
     @Test
     public void testGraphCommandUndoJustLastOutputClauseColumn() throws Exception {
+        makeCommand(DecisionTableUIModelMapperHelper.ROW_INDEX_COLUMN_COUNT);
+
         final String ruleOneOldOutput = "old rule 1";
         final String ruleTwoOldOutput = "old rule 2";
 
@@ -212,6 +236,8 @@ public class AddOutputClauseCommandTest {
 
     @Test
     public void testCanvasCommandAllow() throws Exception {
+        makeCommand(DecisionTableUIModelMapperHelper.ROW_INDEX_COLUMN_COUNT);
+
         final Command<AbstractCanvasHandler, CanvasViolation> canvasCommand = command.newCanvasCommand(canvasHandler);
 
         assertEquals(CanvasCommandResultBuilder.SUCCESS,
@@ -220,6 +246,8 @@ public class AddOutputClauseCommandTest {
 
     @Test
     public void testCanvasCommandAddOutputClauseToRuleWithInputs() throws Exception {
+        makeCommand(DecisionTableUIModelMapperHelper.ROW_INDEX_COLUMN_COUNT + 1);
+
         final String ruleInputValue = "in value";
         final String ruleOutputValue = "out value";
 
@@ -233,8 +261,10 @@ public class AddOutputClauseCommandTest {
             }});
         }});
 
+        //Graph command populates OutputEntries so overwrite with test values
         final Command<GraphCommandExecutionContext, RuleViolation> graphCommand = command.newGraphCommand(canvasHandler);
         graphCommand.execute(graphCommandExecutionContext);
+        dtable.getRule().get(0).getOutputEntry().get(0).setText(ruleOutputValue);
 
         doReturn(1).when(uiInputClauseColumn).getIndex();
         doReturn(2).when(uiOutputClauseColumn).getIndex();
@@ -256,21 +286,26 @@ public class AddOutputClauseCommandTest {
 
         // one time in execute(), one time in undo()
         verify(canvasOperation, times(2)).execute();
+        verify(command, times(2)).updateParentInformation();
     }
 
     @Test
     public void testCanvasCommandAddOutputClauseToRuleWithoutInputsThenUndo() throws Exception {
+        makeCommand(DecisionTableUIModelMapperHelper.ROW_INDEX_COLUMN_COUNT);
+
         final String ruleOneOutputValue = "one";
         final String ruleTwoOutputValue = "two";
 
-        addRuleWithOutputClauseValues(ruleOneOutputValue);
-        addRuleWithOutputClauseValues(ruleTwoOutputValue);
+        dtable.getRule().add(new DecisionRule());
+        dtable.getRule().add(new DecisionRule());
+        uiModel.appendRow(new BaseGridRow());
+        uiModel.appendRow(new BaseGridRow());
 
+        //Graph command populates OutputEntries so overwrite with test values
         final Command<GraphCommandExecutionContext, RuleViolation> graphCommand = command.newGraphCommand(canvasHandler);
         graphCommand.execute(graphCommandExecutionContext);
-
-        uiModel.appendRow(new BaseGridRow());
-        uiModel.appendRow(new BaseGridRow());
+        dtable.getRule().get(0).getOutputEntry().get(0).setText(ruleOneOutputValue);
+        dtable.getRule().get(1).getOutputEntry().get(0).setText(ruleTwoOutputValue);
 
         final Command<AbstractCanvasHandler, CanvasViolation> canvasAddOutputClauseCommand = command.newCanvasCommand(canvasHandler);
         canvasAddOutputClauseCommand.execute(canvasHandler);
@@ -288,10 +323,13 @@ public class AddOutputClauseCommandTest {
 
         // one time in execute(), one time in undo()
         verify(canvasOperation, times(2)).execute();
+        verify(command, times(2)).updateParentInformation();
     }
 
     @Test
     public void testCanvasCommandUndoWhenNothingBefore() throws Exception {
+        makeCommand(DecisionTableUIModelMapperHelper.ROW_INDEX_COLUMN_COUNT);
+
         final Command<AbstractCanvasHandler, CanvasViolation> canvasAddOutputClauseCommand = command.newCanvasCommand(canvasHandler);
 
         canvasAddOutputClauseCommand.undo(canvasHandler);
@@ -299,6 +337,7 @@ public class AddOutputClauseCommandTest {
         assertEquals(1, uiModel.getColumnCount());
 
         verify(canvasOperation).execute();
+        verify(command).updateParentInformation();
     }
 
     private void addRuleWithOutputClauseValues(String... outputClauseValues) {

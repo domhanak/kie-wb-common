@@ -50,6 +50,9 @@ public class DMNEditorConstants {
     public static final String ExpressionEditor_InvocationType = "ExpressionEditor.InvocationType";
 
     @TranslationKey(defaultValue = "")
+    public static final String ExpressionEditor_Clear = "ExpressionEditor.Clear";
+
+    @TranslationKey(defaultValue = "")
     public static final String ContextEditor_InsertContextEntryAbove = "ContextEditor.InsertContextEntryAbove";
 
     @TranslationKey(defaultValue = "")
@@ -75,4 +78,55 @@ public class DMNEditorConstants {
 
     @TranslationKey(defaultValue = "")
     public static final String RelationEditor_DeleteColumn = "RelationEditor.DeleteColumn";
+
+    @TranslationKey(defaultValue = "")
+    public static final String InvocationEditor_InsertParameterAbove = "InvocationEditor.InsertParameterAbove";
+
+    @TranslationKey(defaultValue = "")
+    public static final String InvocationEditor_InsertParameterBelow = "InvocationEditor.InsertParameterBelow";
+
+    @TranslationKey(defaultValue = "")
+    public static final String InvocationEditor_DeleteParameter = "InvocationEditor.DeleteParameter";
+
+    @TranslationKey(defaultValue = "")
+    public static final String FunctionEditor_FEEL = "FunctionEditor.FEEL";
+
+    @TranslationKey(defaultValue = "")
+    public static final String FunctionEditor_JAVA = "FunctionEditor.JAVA";
+
+    @TranslationKey(defaultValue = "")
+    public static final String FunctionEditor_PMML = "FunctionEditor.PMML";
+
+    @TranslationKey(defaultValue = "")
+    public static final String DecisionTableEditor_DescriptionColumnHeader = "DecisionTableEditor.DescriptionColumnHeader";
+
+    @TranslationKey(defaultValue = "")
+    public static final String DecisionTableEditor_OutputClauseHeader = "DecisionTableEditor.OutputClauseHeader";
+
+    @TranslationKey(defaultValue = "")
+    public static final String DecisionTableEditor_InsertDecisionRuleAbove = "DecisionTableEditor.InsertDecisionRuleAbove";
+
+    @TranslationKey(defaultValue = "")
+    public static final String DecisionTableEditor_InsertDecisionRuleBelow = "DecisionTableEditor.InsertDecisionRuleBelow";
+
+    @TranslationKey(defaultValue = "")
+    public static final String DecisionTableEditor_DeleteDecisionRule = "DecisionTableEditor.DeleteDecisionRule";
+
+    @TranslationKey(defaultValue = "")
+    public static final String DecisionTableEditor_InsertInputClauseBefore = "DecisionTableEditor.InsertInputClauseBefore";
+
+    @TranslationKey(defaultValue = "")
+    public static final String DecisionTableEditor_InsertInputClauseAfter = "DecisionTableEditor.InsertInputClauseAfter";
+
+    @TranslationKey(defaultValue = "")
+    public static final String DecisionTableEditor_DeleteInputClause = "DecisionTableEditor.DeleteInputClause";
+
+    @TranslationKey(defaultValue = "")
+    public static final String DecisionTableEditor_InsertOutputClauseBefore = "DecisionTableEditor.InsertOutputClauseBefore";
+
+    @TranslationKey(defaultValue = "")
+    public static final String DecisionTableEditor_InsertOutputClauseAfter = "DecisionTableEditor.InsertOutputClauseAfter";
+
+    @TranslationKey(defaultValue = "")
+    public static final String DecisionTableEditor_DeleteOutputClause = "DecisionTableEditor.DeleteOutputClause";
 }

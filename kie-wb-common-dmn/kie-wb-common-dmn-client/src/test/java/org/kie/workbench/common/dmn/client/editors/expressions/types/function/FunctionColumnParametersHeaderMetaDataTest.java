@@ -16,40 +16,56 @@
 
 package org.kie.workbench.common.dmn.client.editors.expressions.types.function;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.function.Supplier;
 
+import com.ait.lienzo.client.core.types.Transform;
+import com.ait.lienzo.test.LienzoMockitoTestRunner;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.kie.workbench.common.dmn.api.definition.v1_1.FunctionDefinition;
 import org.kie.workbench.common.dmn.api.definition.v1_1.InformationItem;
 import org.kie.workbench.common.dmn.api.property.dmn.Name;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.kie.workbench.common.dmn.client.editors.expressions.types.function.parameters.ParametersEditorView;
+import org.kie.workbench.common.dmn.client.widgets.grid.controls.container.CellEditorControlsView;
+import org.mockito.Mock;
+import org.uberfire.ext.wires.core.grids.client.widget.grid.renderers.grids.GridRenderer;
 
 import static org.junit.Assert.assertEquals;
 
-@RunWith(MockitoJUnitRunner.class)
+@RunWith(LienzoMockitoTestRunner.class)
 public class FunctionColumnParametersHeaderMetaDataTest {
 
-    private FunctionDefinition.Kind kind;
+    @Mock
+    private CellEditorControlsView.Presenter cellEditorControls;
 
-    private List<InformationItem> parameters = new ArrayList<>();
+    @Mock
+    private ParametersEditorView.Presenter parametersEditor;
 
-    private Supplier<FunctionDefinition.Kind> expressionLanguageSupplier;
+    @Mock
+    private FunctionGrid gridWidget;
 
-    private Supplier<List<InformationItem>> formalParametersSupplier;
+    @Mock
+    private Transform transform;
+
+    @Mock
+    private GridRenderer renderer;
+
+    private FunctionDefinition function;
+
+    private Supplier<FunctionDefinition> functionSupplier;
 
     private FunctionColumnParametersHeaderMetaData header;
 
     @Before
     public void setup() {
-        this.expressionLanguageSupplier = () -> kind;
-        this.formalParametersSupplier = () -> parameters;
-        this.header = new FunctionColumnParametersHeaderMetaData(expressionLanguageSupplier,
-                                                                 formalParametersSupplier);
+        this.function = new FunctionDefinition();
+        this.functionSupplier = () -> function;
+        this.header = new FunctionColumnParametersHeaderMetaData(functionSupplier,
+                                                                 cellEditorControls,
+                                                                 parametersEditor,
+                                                                 gridWidget);
     }
 
     @Test(expected = UnsupportedOperationException.class)
@@ -64,7 +80,8 @@ public class FunctionColumnParametersHeaderMetaDataTest {
 
     @Test
     public void testGetExpressionLanguageTitle() {
-        this.kind = FunctionDefinition.Kind.FEEL;
+        KindUtilities.setKind(this.function,
+                              FunctionDefinition.Kind.FEEL);
 
         assertEquals(FunctionDefinition.Kind.FEEL.code(),
                      header.getExpressionLanguageTitle());
@@ -94,7 +111,9 @@ public class FunctionColumnParametersHeaderMetaDataTest {
 
     @Test
     public void testGetTitle() {
-        this.kind = FunctionDefinition.Kind.FEEL;
+        KindUtilities.setKind(this.function,
+                              FunctionDefinition.Kind.FEEL);
+
         setupFormalParameters("p0", "p1");
 
         assertEquals("F : (p0, p1)",
@@ -102,7 +121,7 @@ public class FunctionColumnParametersHeaderMetaDataTest {
     }
 
     private void setupFormalParameters(final String... parameters) {
-        Arrays.asList(parameters).forEach(p -> this.parameters.add(new InformationItem() {{
+        Arrays.asList(parameters).forEach(p -> this.function.getFormalParameter().add(new InformationItem() {{
             setName(new Name(p));
         }}));
     }

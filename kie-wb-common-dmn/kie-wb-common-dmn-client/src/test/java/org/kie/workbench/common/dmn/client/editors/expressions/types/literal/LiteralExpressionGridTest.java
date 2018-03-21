@@ -17,7 +17,6 @@
 package org.kie.workbench.common.dmn.client.editors.expressions.types.literal;
 
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 
@@ -32,11 +31,10 @@ import org.kie.workbench.common.dmn.api.definition.v1_1.Decision;
 import org.kie.workbench.common.dmn.api.definition.v1_1.LiteralExpression;
 import org.kie.workbench.common.dmn.api.property.dmn.Name;
 import org.kie.workbench.common.dmn.client.editors.expressions.types.context.ContextGrid;
-import org.kie.workbench.common.dmn.client.events.ExpressionEditorSelectedEvent;
 import org.kie.workbench.common.dmn.client.widgets.grid.BaseExpressionGrid;
-import org.kie.workbench.common.dmn.client.widgets.grid.controls.container.CellEditorControls;
+import org.kie.workbench.common.dmn.client.widgets.grid.controls.container.CellEditorControlsView;
 import org.kie.workbench.common.dmn.client.widgets.grid.controls.list.HasListSelectorControl;
-import org.kie.workbench.common.dmn.client.widgets.grid.controls.list.ListSelector;
+import org.kie.workbench.common.dmn.client.widgets.grid.controls.list.ListSelectorView;
 import org.kie.workbench.common.dmn.client.widgets.grid.model.DMNGridData;
 import org.kie.workbench.common.dmn.client.widgets.grid.model.GridCellTuple;
 import org.kie.workbench.common.dmn.client.widgets.layer.DMNGridLayer;
@@ -45,15 +43,12 @@ import org.kie.workbench.common.stunner.core.client.api.SessionManager;
 import org.kie.workbench.common.stunner.core.client.canvas.AbstractCanvasHandler;
 import org.kie.workbench.common.stunner.core.client.command.SessionCommandManager;
 import org.kie.workbench.common.stunner.core.client.session.ClientSession;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
 import org.mockito.Mock;
 import org.uberfire.ext.wires.core.grids.client.model.Bounds;
 import org.uberfire.ext.wires.core.grids.client.model.GridData;
 import org.uberfire.ext.wires.core.grids.client.model.impl.BaseGridCell;
 import org.uberfire.ext.wires.core.grids.client.widget.grid.GridWidget;
 import org.uberfire.ext.wires.core.grids.client.widget.grid.impl.BaseGridWidget;
-import org.uberfire.mocks.EventSourceMock;
 import org.uberfire.mvp.Command;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -88,25 +83,19 @@ public class LiteralExpressionGridTest {
     private AbstractCanvasHandler canvasHandler;
 
     @Mock
-    private EventSourceMock<ExpressionEditorSelectedEvent> editorSelectedEvent;
-
-    @Mock
-    private CellEditorControls cellEditorControls;
+    private CellEditorControlsView.Presenter cellEditorControls;
 
     @Mock
     private TranslationService translationService;
 
     @Mock
-    private ListSelector listSelector;
+    private ListSelectorView.Presenter listSelector;
 
     @Mock
     private GridCellTuple parent;
 
     @Mock
     private HasExpression hasExpression;
-
-    @Captor
-    private ArgumentCaptor<ExpressionEditorSelectedEvent> expressionEditorSelectedEventCaptor;
 
     private LiteralExpressionGrid grid;
 
@@ -116,7 +105,6 @@ public class LiteralExpressionGridTest {
                                                                                                    gridLayer,
                                                                                                    sessionManager,
                                                                                                    sessionCommandManager,
-                                                                                                   editorSelectedEvent,
                                                                                                    cellEditorControls,
                                                                                                    translationService,
                                                                                                    listSelector);
@@ -152,28 +140,17 @@ public class LiteralExpressionGridTest {
     }
 
     @Test
-    public void testGetEditorControls() {
-        assertThat(grid.getEditorControls()).isEmpty();
+    public void testPaddingWithParent() {
+        doReturn(Optional.of(mock(BaseExpressionGrid.class))).when(grid).findParentGrid();
+
+        assertThat(grid.getPadding()).isEqualTo(LiteralExpressionGrid.PADDING);
     }
 
     @Test
-    public void testFireExpressionEditorSelectedEventSelectsParentGridWidget() {
-        final GridData mockParentUiModel = mock(GridData.class);
-        final BaseExpressionGrid mockParentGrid = mock(BaseExpressionGrid.class);
-        doReturn(mockParentGrid).when(parent).getGridWidget();
-        doReturn(mockParentUiModel).when(mockParentGrid).getModel();
-        doReturn(new HashSet<GridWidget>() {{
-            add(mockParentGrid);
-            add(grid);
-        }}).when(gridLayer).getGridWidgets();
+    public void testPaddingWithNoParent() {
+        doReturn(Optional.empty()).when(grid).findParentGrid();
 
-        grid.select();
-
-        verify(editorSelectedEvent).fire(expressionEditorSelectedEventCaptor.capture());
-
-        final ExpressionEditorSelectedEvent event = expressionEditorSelectedEventCaptor.getValue();
-        assertThat(event.getEditor()).isPresent();
-        assertThat(mockParentGrid).isSameAs(event.getEditor().get());
+        assertThat(grid.getPadding()).isEqualTo(BaseExpressionGrid.DEFAULT_PADDING);
     }
 
     @Test

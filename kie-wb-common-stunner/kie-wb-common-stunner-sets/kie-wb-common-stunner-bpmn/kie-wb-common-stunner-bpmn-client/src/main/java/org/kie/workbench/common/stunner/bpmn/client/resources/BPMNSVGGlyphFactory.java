@@ -171,7 +171,7 @@ public interface BPMNSVGGlyphFactory {
                     .create()
                     .setUri(BPMNImageResources.INSTANCE.subProcess().getSafeUri())
                     .addUri("subProcessEmbedded",
-                            BPMNImageResources.INSTANCE.subProcessAdHoc().getSafeUri())
+                            BPMNImageResources.INSTANCE.subProcessEmbedded().getSafeUri())
                     .build("subProcessEmbedded");
 
     SvgDataUriGlyph ADHOC_SUBPROCESS_GLYPH =
@@ -187,4 +187,12 @@ public interface BPMNSVGGlyphFactory {
                     .create()
                     .setUri(BPMNImageResources.INSTANCE.subProcessEvent().getSafeUri())
                     .build("subProcessEvent");
+
+    SvgDataUriGlyph MULTIPLE_INSTANCE_SUBPROCESS_GLYPH =
+            SvgDataUriGlyph.Builder
+                    .create()
+                    .setUri(BPMNImageResources.INSTANCE.subProcess().getSafeUri())
+                    .addUri("subProcessMultipleInstance",
+                            BPMNImageResources.INSTANCE.subProcessMultipleInstance().getSafeUri())
+                    .build("subProcessMultipleInstance");
 }

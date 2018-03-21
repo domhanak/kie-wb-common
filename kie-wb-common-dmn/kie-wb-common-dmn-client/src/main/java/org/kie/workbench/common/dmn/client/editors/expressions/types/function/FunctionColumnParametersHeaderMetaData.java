@@ -22,19 +22,25 @@ import java.util.stream.Collectors;
 
 import org.kie.workbench.common.dmn.api.definition.v1_1.FunctionDefinition;
 import org.kie.workbench.common.dmn.api.definition.v1_1.InformationItem;
-import org.uberfire.ext.wires.core.grids.client.model.GridColumn;
+import org.kie.workbench.common.dmn.client.editors.expressions.types.function.parameters.HasParametersControl;
+import org.kie.workbench.common.dmn.client.editors.expressions.types.function.parameters.ParametersEditorView;
+import org.kie.workbench.common.dmn.client.widgets.grid.columns.EditablePopupHeaderMetaData;
+import org.kie.workbench.common.dmn.client.widgets.grid.controls.container.CellEditorControlsView;
 
-public class FunctionColumnParametersHeaderMetaData implements GridColumn.HeaderMetaData {
+public class FunctionColumnParametersHeaderMetaData extends EditablePopupHeaderMetaData<HasParametersControl, ParametersEditorView.Presenter> {
 
     static final String PARAMETER_COLUMN_GROUP = "FunctionColumnParametersHeaderMetaData$Parameters";
 
-    private final Supplier<FunctionDefinition.Kind> expressionLanguageSupplier;
-    private final Supplier<List<InformationItem>> formalParametersSupplier;
+    private final Supplier<FunctionDefinition> functionSupplier;
 
-    public FunctionColumnParametersHeaderMetaData(final Supplier<FunctionDefinition.Kind> expressionLanguageSupplier,
-                                                  final Supplier<List<InformationItem>> formalParametersSupplier) {
-        this.expressionLanguageSupplier = expressionLanguageSupplier;
-        this.formalParametersSupplier = formalParametersSupplier;
+    public FunctionColumnParametersHeaderMetaData(final Supplier<FunctionDefinition> functionSupplier,
+                                                  final CellEditorControlsView.Presenter cellEditorControls,
+                                                  final ParametersEditorView.Presenter editor,
+                                                  final FunctionGrid gridWidget) {
+        super(cellEditorControls,
+              editor,
+              gridWidget);
+        this.functionSupplier = functionSupplier;
     }
 
     @Override
@@ -43,36 +49,26 @@ public class FunctionColumnParametersHeaderMetaData implements GridColumn.Header
     }
 
     @Override
-    public void setColumnGroup(final String columnGroup) {
-        throw new UnsupportedOperationException("Group cannot be set.");
-    }
-
-    @Override
     public String getTitle() {
         //TODO {manstis} We need the FunctionGridRendered to render the two sections as different cells
-        final StringBuffer sb = new StringBuffer(getExpressionLanguageTitle());
+        final StringBuilder sb = new StringBuilder(getExpressionLanguageTitle());
         sb.append(" : ");
         sb.append(getFormalParametersTitle());
         return sb.toString();
     }
 
-    public String getExpressionLanguageTitle() {
-        return expressionLanguageSupplier.get().code();
+    String getExpressionLanguageTitle() {
+        return KindUtilities.getKind(functionSupplier.get()).code();
     }
 
-    public String getFormalParametersTitle() {
-        final List<InformationItem> formalParameters = formalParametersSupplier.get();
-        final StringBuffer sb = new StringBuffer();
+    String getFormalParametersTitle() {
+        final List<InformationItem> formalParameters = functionSupplier.get().getFormalParameter();
+        final StringBuilder sb = new StringBuilder();
         sb.append("(");
         if (!formalParameters.isEmpty()) {
             sb.append(formalParameters.stream().map(ii -> ii.getName().getValue()).collect(Collectors.joining(", ")));
         }
         sb.append(")");
         return sb.toString();
-    }
-
-    @Override
-    public void setTitle(final String title) {
-        throw new UnsupportedOperationException("Title is derived from the Decision Table Hit Policy and cannot be set on the HeaderMetaData.");
     }
 }

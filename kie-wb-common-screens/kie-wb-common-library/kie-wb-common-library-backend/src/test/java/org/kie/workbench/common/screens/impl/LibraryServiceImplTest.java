@@ -30,13 +30,15 @@ import org.guvnor.common.services.project.model.Module;
 import org.guvnor.common.services.project.model.POM;
 import org.guvnor.common.services.project.model.Package;
 import org.guvnor.common.services.project.model.WorkspaceProject;
-import org.guvnor.common.services.project.project.WorkspaceProjectMigrationService;
 import org.guvnor.common.services.project.service.DeploymentMode;
 import org.guvnor.common.services.project.service.WorkspaceProjectService;
 import org.guvnor.structure.organizationalunit.OrganizationalUnit;
 import org.guvnor.structure.organizationalunit.OrganizationalUnitService;
 import org.guvnor.structure.repositories.Branch;
 import org.guvnor.structure.repositories.Repository;
+import org.guvnor.structure.repositories.RepositoryEnvironmentConfigurations;
+import org.guvnor.structure.repositories.RepositoryService;
+import org.guvnor.structure.repositories.impl.git.GitRepository;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -46,6 +48,8 @@ import org.kie.workbench.common.screens.examples.model.ExampleRepository;
 import org.kie.workbench.common.screens.examples.service.ExamplesService;
 import org.kie.workbench.common.screens.explorer.backend.server.ExplorerServiceHelper;
 import org.kie.workbench.common.screens.library.api.AssetInfo;
+import org.kie.workbench.common.screens.library.api.AssetQueryResult;
+import org.kie.workbench.common.screens.library.api.AssetQueryResult.ResultType;
 import org.kie.workbench.common.screens.library.api.LibraryInfo;
 import org.kie.workbench.common.screens.library.api.OrganizationalUnitRepositoryInfo;
 import org.kie.workbench.common.screens.library.api.ProjectAssetsQuery;
@@ -70,10 +74,21 @@ import org.uberfire.rpc.SessionInfo;
 import org.uberfire.security.authz.AuthorizationManager;
 
 import static java.util.Collections.singletonList;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyList;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Matchers.same;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class LibraryServiceImplTest {
@@ -107,6 +122,12 @@ public class LibraryServiceImplTest {
 
     @Mock
     private SocialUserRepositoryAPI socialUserRepositoryAPI;
+
+    @Mock
+    private IndexStatusOracle indexOracle;
+
+    @Mock
+    private RepositoryService repositoryService;
 
     @Mock
     private OrganizationalUnit ou1;
@@ -150,6 +171,8 @@ public class LibraryServiceImplTest {
         when(ou2.getRepositories()).thenReturn(Arrays.asList(repo1,
                                                              repo2Default));
 
+        when(indexOracle.isIndexed(any())).thenReturn(true);
+
         modulesMock = new HashSet<>();
         modulesMock.add(mock(Module.class));
         modulesMock.add(mock(Module.class));
@@ -167,11 +190,30 @@ public class LibraryServiceImplTest {
                                                     projectService,
                                                     moduleService,
                                                     examplesService,
-                                                    mock(WorkspaceProjectMigrationService.class),
+                                                    repositoryService,
                                                     ioService,
                                                     internalPreferences,
-                                                    socialUserRepositoryAPI
+                                                    socialUserRepositoryAPI,
+                                                    indexOracle
         ));
+    }
+
+    @Test
+    public void queryingUnindexedProjectGivesUnindexedResult() throws Exception {
+        Branch branch = new Branch("fake-branch", mockPath("default:///a/b/c"));
+        final WorkspaceProject project = new WorkspaceProject(ou1, repo1, branch, mock(Module.class));
+        when(indexOracle.isIndexed(project)).thenReturn(false);
+        when(ioService.exists(any())).thenReturn(true);
+
+        final ProjectAssetsQuery query = new ProjectAssetsQuery(project,
+                                                                "",
+                                                                0,
+                                                                10,
+                                                                Collections.emptyList());
+
+        AssetQueryResult result = libraryService.getProjectAssets(query);
+        assertEquals(ResultType.Unindexed, result.getResultType());
+        assertFalse(result.getAssetInfos().isPresent());
     }
 
     @Test
@@ -388,8 +430,11 @@ public class LibraryServiceImplTest {
 
         when(ioService.readAttributes(any())).thenThrow(new NoSuchFileException());
 
-        final List<AssetInfo> projectAssets = libraryService.getProjectAssets(query);
+        final AssetQueryResult result = libraryService.getProjectAssets(query);
 
+        assertEquals(ResultType.Normal, result.getResultType());
+        assertTrue(result.getAssetInfos().isPresent());
+        List<AssetInfo> projectAssets = result.getAssetInfos().get();
         assertTrue(projectAssets.isEmpty());
     }
 
@@ -499,7 +544,7 @@ public class LibraryServiceImplTest {
     }
 
     @Test
-    public void importProjectTest() {
+    public void importProjectFromExampleTest() {
         final OrganizationalUnit organizationalUnit = mock(OrganizationalUnit.class);
         final ExampleProject exampleProject = mock(ExampleProject.class);
 
@@ -517,6 +562,62 @@ public class LibraryServiceImplTest {
 
         assertEquals(module,
                      importedProject.getMainModule());
+    }
+
+    @Test
+    public void importProjectWithCredentialsTest() {
+        final OrganizationalUnit organizationalUnit = mock(OrganizationalUnit.class);
+        final Repository repo = mock(Repository.class);
+        final WorkspaceProject project = mock(WorkspaceProject.class);
+
+        final String repositoryURL = "file:///some/path/to/fake-repo.git";
+        final String username = "fakeUser";
+        final String password = "fakePassword";
+
+        final ArgumentCaptor<RepositoryEnvironmentConfigurations> configCaptor = ArgumentCaptor.forClass(RepositoryEnvironmentConfigurations.class);
+
+        when(repositoryService.createRepository(any(), any(), any(), configCaptor.capture())).thenReturn(repo);
+        when(projectService.resolveProject(any(Repository.class))).thenReturn(project);
+
+        final WorkspaceProject observedProject = libraryService.importProject(organizationalUnit, repositoryURL, username, password);
+
+        verify(repositoryService).createRepository(same(organizationalUnit), eq(GitRepository.SCHEME.toString()), eq("fake-repo"), any());
+        RepositoryEnvironmentConfigurations observedConfig = configCaptor.getValue();
+        assertEquals(username, observedConfig.getUserName());
+        assertEquals(password, observedConfig.getPassword());
+        assertEquals(repositoryURL, observedConfig.getOrigin());
+
+        verify(projectService).resolveProject(same(repo));
+
+        assertSame(project, observedProject);
+    }
+
+    @Test
+    public void importProjectWithoutCredentialsTest() {
+        final OrganizationalUnit organizationalUnit = mock(OrganizationalUnit.class);
+        final Repository repo = mock(Repository.class);
+        final WorkspaceProject project = mock(WorkspaceProject.class);
+
+        final String repositoryURL = "file:///some/path/to/fake-repo.git";
+        final String username = null;
+        final String password = null;
+
+        final ArgumentCaptor<RepositoryEnvironmentConfigurations> configCaptor = ArgumentCaptor.forClass(RepositoryEnvironmentConfigurations.class);
+
+        when(repositoryService.createRepository(any(), any(), any(), configCaptor.capture())).thenReturn(repo);
+        when(projectService.resolveProject(any(Repository.class))).thenReturn(project);
+
+        final WorkspaceProject observedProject = libraryService.importProject(organizationalUnit, repositoryURL, username, password);
+
+        verify(repositoryService).createRepository(same(organizationalUnit), eq(GitRepository.SCHEME.toString()), eq("fake-repo"), any());
+        RepositoryEnvironmentConfigurations observedConfig = configCaptor.getValue();
+        assertEquals(username, observedConfig.getUserName());
+        assertEquals(password, observedConfig.getPassword());
+        assertEquals(repositoryURL, observedConfig.getOrigin());
+
+        verify(projectService).resolveProject(same(repo));
+
+        assertSame(project, observedProject);
     }
 
     @Test

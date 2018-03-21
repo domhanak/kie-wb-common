@@ -69,7 +69,9 @@ public interface DefaultWorkbenchConstants
 
     String Task_Inbox();
 
-    String Process_Dashboard();
+    String Process_Reports();
+
+    String Task_Reports();
 
     String Content_Management();
 
@@ -139,7 +141,7 @@ public interface DefaultWorkbenchConstants
 
     String Languages();
 
-    String Tasks_Admin();
+    String Tasks();
 
     String GuidedDecisionTree();
 

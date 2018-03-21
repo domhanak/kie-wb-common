@@ -55,6 +55,7 @@ import org.kie.workbench.common.stunner.bpmn.definition.property.gateway.Gateway
 import org.kie.workbench.common.stunner.bpmn.definition.property.general.BPMNGeneralSet;
 import org.kie.workbench.common.stunner.bpmn.definition.property.general.Documentation;
 import org.kie.workbench.common.stunner.bpmn.definition.property.general.Name;
+import org.kie.workbench.common.stunner.bpmn.definition.property.simulation.SimulationAttributeSet;
 import org.kie.workbench.common.stunner.bpmn.definition.property.task.AdHocAutostart;
 import org.kie.workbench.common.stunner.bpmn.definition.property.task.AdHocCompletionCondition;
 import org.kie.workbench.common.stunner.bpmn.definition.property.task.AdHocOrdering;
@@ -63,6 +64,13 @@ import org.kie.workbench.common.stunner.bpmn.definition.property.task.BusinessRu
 import org.kie.workbench.common.stunner.bpmn.definition.property.task.CreatedBy;
 import org.kie.workbench.common.stunner.bpmn.definition.property.task.Description;
 import org.kie.workbench.common.stunner.bpmn.definition.property.task.IsAsync;
+import org.kie.workbench.common.stunner.bpmn.definition.property.task.MITrigger;
+import org.kie.workbench.common.stunner.bpmn.definition.property.task.MultipleInstanceCollectionInput;
+import org.kie.workbench.common.stunner.bpmn.definition.property.task.MultipleInstanceCollectionOutput;
+import org.kie.workbench.common.stunner.bpmn.definition.property.task.MultipleInstanceCompletionCondition;
+import org.kie.workbench.common.stunner.bpmn.definition.property.task.MultipleInstanceDataInput;
+import org.kie.workbench.common.stunner.bpmn.definition.property.task.MultipleInstanceDataOutput;
+import org.kie.workbench.common.stunner.bpmn.definition.property.task.MultipleInstanceSubprocessTaskExecutionSet;
 import org.kie.workbench.common.stunner.bpmn.definition.property.task.OnEntryAction;
 import org.kie.workbench.common.stunner.bpmn.definition.property.task.OnExitAction;
 import org.kie.workbench.common.stunner.bpmn.definition.property.task.RuleFlowGroup;
@@ -74,6 +82,8 @@ import org.kie.workbench.common.stunner.bpmn.definition.property.task.Skippable;
 import org.kie.workbench.common.stunner.bpmn.definition.property.task.Subject;
 import org.kie.workbench.common.stunner.bpmn.definition.property.task.TaskName;
 import org.kie.workbench.common.stunner.bpmn.definition.property.task.UserTaskExecutionSet;
+import org.kie.workbench.common.stunner.bpmn.definition.property.variables.ProcessData;
+import org.kie.workbench.common.stunner.bpmn.definition.property.variables.ProcessVariables;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -750,25 +760,37 @@ public class HashCodeAndEqualityTest {
     }
 
     @Test
-    public void testStartNoneEventEquals() {
-        StartNoneEvent.StartNoneEventBuilder builder = new StartNoneEvent.StartNoneEventBuilder();
-        StartNoneEvent a = builder.build();
-        builder = new StartNoneEvent.StartNoneEventBuilder();
-        StartNoneEvent b = builder.build();
-        assertEquals(a,
-                     b);
-        assertFalse(a.equals(19));
-        assertFalse(a.equals(null));
-    }
-
-    @Test
-    public void testStartNoneEventHashCode() {
-        StartNoneEvent.StartNoneEventBuilder builder = new StartNoneEvent.StartNoneEventBuilder();
-        StartNoneEvent a = builder.build();
-        builder = new StartNoneEvent.StartNoneEventBuilder();
-        StartNoneEvent b = builder.build();
-        assertEquals(a.hashCode(),
-                     b.hashCode());
+    public void testStartNoneEventEqualsAndHasCode() {
+        TestCaseBuilder.newTestCase()
+                .addTrueCase(new StartNoneEvent(),
+                             new StartNoneEvent())
+                .addTrueCase(new StartNoneEvent(new BPMNGeneralSet(),
+                                                new BackgroundSet(),
+                                                new FontSet(),
+                                                new CircleDimensionSet(),
+                                                new SimulationAttributeSet(),
+                                                new IsInterrupting()),
+                             new StartNoneEvent(new BPMNGeneralSet(),
+                                                new BackgroundSet(),
+                                                new FontSet(),
+                                                new CircleDimensionSet(),
+                                                new SimulationAttributeSet(),
+                                                new IsInterrupting()))
+                .addFalseCase(new StartNoneEvent(),
+                              new StartNoneEvent(new BPMNGeneralSet(),
+                                                 new BackgroundSet(),
+                                                 new FontSet(),
+                                                 new CircleDimensionSet(),
+                                                 new SimulationAttributeSet(),
+                                                 new IsInterrupting()))
+                .addFalseCase(new StartNoneEvent(new BPMNGeneralSet(),
+                                                 new BackgroundSet(),
+                                                 new FontSet(),
+                                                 new CircleDimensionSet(),
+                                                 new SimulationAttributeSet(),
+                                                 new IsInterrupting()),
+                              new StartNoneEvent())
+                .test();
     }
 
     @Test
@@ -956,6 +978,254 @@ public class HashCodeAndEqualityTest {
                      b.hashCode());
         assertEquals(new EmbeddedSubprocess().hashCode(),
                      new EmbeddedSubprocess().hashCode());
+    }
+
+    @Test
+    public void testMultipleInstanceSubprocessEquals() {
+        final String MULTIPLE_INSTANCE_COLLECTION_INPUT = "multiple Instance collection input";
+        final String MULTIPLE_INSTANCE_COLLECTION_OUTPUT = "multiple Instance collection output";
+        final String MULTIPLE_INSTANCE_DATA_INPUT = "multiple Instance collection input";
+        final String MULTIPLE_INSTANCE_DATA_OUTPUT = "multiple Instance collection output";
+        final String MULTIPLE_INSTANCE_COMPLETION_CONDITION = "multiple Instance completion condition";
+        final String OTHER_VALUE = "other value";
+
+        final ScriptTypeListValue ON_ENTRY_ACTION = new ScriptTypeListValue().addValue(new ScriptTypeValue("java",
+                                                                                                           ""));
+        final ScriptTypeListValue ON_EXIT_ACTION = new ScriptTypeListValue().addValue(new ScriptTypeValue("java",
+                                                                                                          ""));
+        final Boolean IS_ASYNC = true;
+
+        final MultipleInstanceSubprocessTaskExecutionSet A_EXECUTION_SET
+                = new MultipleInstanceSubprocessTaskExecutionSet
+                (new MultipleInstanceCollectionInput(MULTIPLE_INSTANCE_COLLECTION_INPUT),
+                 new MultipleInstanceCollectionOutput(MULTIPLE_INSTANCE_COLLECTION_OUTPUT),
+                 new MultipleInstanceDataInput(MULTIPLE_INSTANCE_DATA_INPUT),
+                 new MultipleInstanceDataOutput(MULTIPLE_INSTANCE_DATA_OUTPUT),
+                 new MultipleInstanceCompletionCondition(MULTIPLE_INSTANCE_COMPLETION_CONDITION),
+                 new OnEntryAction(ON_ENTRY_ACTION),
+                 new OnExitAction(ON_EXIT_ACTION),
+                 new MITrigger("true"),
+                 new IsAsync(IS_ASYNC));
+
+        final MultipleInstanceSubprocessTaskExecutionSet B_EXECUTION_SET = new MultipleInstanceSubprocessTaskExecutionSet(
+                new MultipleInstanceCollectionInput(MULTIPLE_INSTANCE_COLLECTION_INPUT),
+                new MultipleInstanceCollectionOutput(MULTIPLE_INSTANCE_COLLECTION_OUTPUT),
+                new MultipleInstanceDataInput(MULTIPLE_INSTANCE_DATA_INPUT),
+                new MultipleInstanceDataOutput(MULTIPLE_INSTANCE_DATA_OUTPUT),
+                new MultipleInstanceCompletionCondition(MULTIPLE_INSTANCE_COMPLETION_CONDITION),
+                new OnEntryAction(ON_ENTRY_ACTION),
+                new OnExitAction(ON_EXIT_ACTION),
+                new MITrigger("true"),
+                new IsAsync(IS_ASYNC));
+
+        final MultipleInstanceSubprocessTaskExecutionSet C_EXECUTION_SET = new MultipleInstanceSubprocessTaskExecutionSet(
+                new MultipleInstanceCollectionInput(OTHER_VALUE),
+                new MultipleInstanceCollectionOutput(MULTIPLE_INSTANCE_COLLECTION_OUTPUT),
+                new MultipleInstanceDataInput(MULTIPLE_INSTANCE_DATA_INPUT),
+                new MultipleInstanceDataOutput(MULTIPLE_INSTANCE_DATA_OUTPUT),
+                new MultipleInstanceCompletionCondition(MULTIPLE_INSTANCE_COMPLETION_CONDITION),
+                new OnEntryAction(ON_ENTRY_ACTION),
+                new OnExitAction(ON_EXIT_ACTION),
+                new MITrigger("true"),
+                new IsAsync(IS_ASYNC));
+
+        final MultipleInstanceSubprocessTaskExecutionSet D_EXECUTION_SET = new MultipleInstanceSubprocessTaskExecutionSet(
+                new MultipleInstanceCollectionInput(MULTIPLE_INSTANCE_COLLECTION_INPUT),
+                new MultipleInstanceCollectionOutput(OTHER_VALUE),
+                new MultipleInstanceDataInput(MULTIPLE_INSTANCE_DATA_INPUT),
+                new MultipleInstanceDataOutput(MULTIPLE_INSTANCE_DATA_OUTPUT),
+                new MultipleInstanceCompletionCondition(MULTIPLE_INSTANCE_COMPLETION_CONDITION),
+                new OnEntryAction(ON_ENTRY_ACTION),
+                new OnExitAction(ON_EXIT_ACTION),
+                new MITrigger("true"),
+                new IsAsync(IS_ASYNC));
+
+        final MultipleInstanceSubprocessTaskExecutionSet E_EXECUTION_SET = new MultipleInstanceSubprocessTaskExecutionSet(
+                new MultipleInstanceCollectionInput(MULTIPLE_INSTANCE_COLLECTION_INPUT),
+                new MultipleInstanceCollectionOutput(MULTIPLE_INSTANCE_COLLECTION_OUTPUT),
+                new MultipleInstanceDataInput(OTHER_VALUE),
+                new MultipleInstanceDataOutput(MULTIPLE_INSTANCE_DATA_OUTPUT),
+                new MultipleInstanceCompletionCondition(MULTIPLE_INSTANCE_COMPLETION_CONDITION),
+                new OnEntryAction(ON_ENTRY_ACTION),
+                new OnExitAction(ON_EXIT_ACTION),
+                new MITrigger("true"),
+                new IsAsync(IS_ASYNC));
+
+        final MultipleInstanceSubprocessTaskExecutionSet F_EXECUTION_SET = new MultipleInstanceSubprocessTaskExecutionSet(
+                new MultipleInstanceCollectionInput(MULTIPLE_INSTANCE_COLLECTION_INPUT),
+                new MultipleInstanceCollectionOutput(MULTIPLE_INSTANCE_COLLECTION_OUTPUT),
+                new MultipleInstanceDataInput(MULTIPLE_INSTANCE_DATA_INPUT),
+                new MultipleInstanceDataOutput(OTHER_VALUE),
+                new MultipleInstanceCompletionCondition(MULTIPLE_INSTANCE_COMPLETION_CONDITION),
+                new OnEntryAction(ON_ENTRY_ACTION),
+                new OnExitAction(ON_EXIT_ACTION),
+                new MITrigger("true"),
+                new IsAsync(IS_ASYNC));
+
+        final MultipleInstanceSubprocessTaskExecutionSet G_EXECUTION_SET = new MultipleInstanceSubprocessTaskExecutionSet(
+                new MultipleInstanceCollectionInput(MULTIPLE_INSTANCE_COLLECTION_INPUT),
+                new MultipleInstanceCollectionOutput(MULTIPLE_INSTANCE_COLLECTION_OUTPUT),
+                new MultipleInstanceDataInput(MULTIPLE_INSTANCE_DATA_INPUT),
+                new MultipleInstanceDataOutput(MULTIPLE_INSTANCE_DATA_OUTPUT),
+                new MultipleInstanceCompletionCondition(OTHER_VALUE),
+                new OnEntryAction(ON_ENTRY_ACTION),
+                new OnExitAction(ON_EXIT_ACTION),
+                new MITrigger("true"),
+                new IsAsync(IS_ASYNC));
+
+        final MultipleInstanceSubprocessTaskExecutionSet H_EXECUTION_SET
+                = new MultipleInstanceSubprocessTaskExecutionSet
+                (new MultipleInstanceCollectionInput(MULTIPLE_INSTANCE_COLLECTION_INPUT),
+                 new MultipleInstanceCollectionOutput(MULTIPLE_INSTANCE_COLLECTION_OUTPUT),
+                 new MultipleInstanceDataInput(MULTIPLE_INSTANCE_DATA_INPUT),
+                 new MultipleInstanceDataOutput(MULTIPLE_INSTANCE_DATA_OUTPUT),
+                 new MultipleInstanceCompletionCondition(MULTIPLE_INSTANCE_COMPLETION_CONDITION),
+                 new OnEntryAction(new ScriptTypeListValue().addValue(new ScriptTypeValue("other language",
+                                                                                          ""))),
+                 new OnExitAction(ON_EXIT_ACTION),
+                 new MITrigger("true"),
+                 new IsAsync(IS_ASYNC));
+
+        final MultipleInstanceSubprocessTaskExecutionSet I_EXECUTION_SET
+                = new MultipleInstanceSubprocessTaskExecutionSet
+                (new MultipleInstanceCollectionInput(MULTIPLE_INSTANCE_COLLECTION_INPUT),
+                 new MultipleInstanceCollectionOutput(MULTIPLE_INSTANCE_COLLECTION_OUTPUT),
+                 new MultipleInstanceDataInput(MULTIPLE_INSTANCE_DATA_INPUT),
+                 new MultipleInstanceDataOutput(MULTIPLE_INSTANCE_DATA_OUTPUT),
+                 new MultipleInstanceCompletionCondition(MULTIPLE_INSTANCE_COMPLETION_CONDITION),
+                 new OnEntryAction(ON_ENTRY_ACTION),
+                 new OnExitAction(new ScriptTypeListValue().addValue(new ScriptTypeValue("other language",
+                                                                                         ""))),
+                 new MITrigger("true"),
+                 new IsAsync(IS_ASYNC));
+
+        final MultipleInstanceSubprocessTaskExecutionSet J_EXECUTION_SET
+                = new MultipleInstanceSubprocessTaskExecutionSet
+                (new MultipleInstanceCollectionInput(MULTIPLE_INSTANCE_COLLECTION_INPUT),
+                 new MultipleInstanceCollectionOutput(MULTIPLE_INSTANCE_COLLECTION_OUTPUT),
+                 new MultipleInstanceDataInput(MULTIPLE_INSTANCE_DATA_INPUT),
+                 new MultipleInstanceDataOutput(MULTIPLE_INSTANCE_DATA_OUTPUT),
+                 new MultipleInstanceCompletionCondition(MULTIPLE_INSTANCE_COMPLETION_CONDITION),
+                 new OnEntryAction(ON_ENTRY_ACTION),
+                 new OnExitAction(ON_EXIT_ACTION),
+                 new MITrigger("true"),
+                 new IsAsync(false));
+
+        final String PROCESS_DATA = "some value";
+        final ProcessData A_PROCESS_DATA = new ProcessData(new ProcessVariables(PROCESS_DATA));
+        final ProcessData B_PROCESS_DATA = new ProcessData(new ProcessVariables("Other value"));
+
+        MultipleInstanceSubprocess.MultipleInstanceSubprocessBuilder builder = new MultipleInstanceSubprocess.MultipleInstanceSubprocessBuilder();
+        MultipleInstanceSubprocess a = builder.build();
+        a.setExecutionSet(A_EXECUTION_SET);
+        a.setProcessData(A_PROCESS_DATA);
+
+        builder = new MultipleInstanceSubprocess.MultipleInstanceSubprocessBuilder();
+        MultipleInstanceSubprocess b = builder.build();
+        b.setExecutionSet(B_EXECUTION_SET);
+        b.setProcessData(A_PROCESS_DATA);
+
+        builder = new MultipleInstanceSubprocess.MultipleInstanceSubprocessBuilder();
+        MultipleInstanceSubprocess c = builder.build();
+        c.setExecutionSet(C_EXECUTION_SET);
+
+        builder = new MultipleInstanceSubprocess.MultipleInstanceSubprocessBuilder();
+        MultipleInstanceSubprocess d = builder.build();
+        d.setExecutionSet(D_EXECUTION_SET);
+
+        builder = new MultipleInstanceSubprocess.MultipleInstanceSubprocessBuilder();
+        MultipleInstanceSubprocess e = builder.build();
+        e.setExecutionSet(E_EXECUTION_SET);
+
+        builder = new MultipleInstanceSubprocess.MultipleInstanceSubprocessBuilder();
+        MultipleInstanceSubprocess f = builder.build();
+        f.setExecutionSet(F_EXECUTION_SET);
+
+        builder = new MultipleInstanceSubprocess.MultipleInstanceSubprocessBuilder();
+        MultipleInstanceSubprocess g = builder.build();
+        g.setExecutionSet(G_EXECUTION_SET);
+
+        builder = new MultipleInstanceSubprocess.MultipleInstanceSubprocessBuilder();
+        MultipleInstanceSubprocess h = builder.build();
+        g.setExecutionSet(H_EXECUTION_SET);
+
+        builder = new MultipleInstanceSubprocess.MultipleInstanceSubprocessBuilder();
+        MultipleInstanceSubprocess i = builder.build();
+        g.setExecutionSet(I_EXECUTION_SET);
+
+        builder = new MultipleInstanceSubprocess.MultipleInstanceSubprocessBuilder();
+        MultipleInstanceSubprocess j = builder.build();
+        g.setExecutionSet(J_EXECUTION_SET);
+
+        assertEquals(a,
+                     a);
+        assertEquals(a,
+                     b);
+
+        assertNotEquals(a,
+                        c);
+        assertNotEquals(a,
+                        d);
+        assertNotEquals(a,
+                        e);
+        assertNotEquals(a,
+                        f);
+        assertNotEquals(a,
+                        g);
+        assertNotEquals(a,
+                        h);
+        assertNotEquals(a,
+                        i);
+        assertNotEquals(a,
+                        j);
+
+        assertNotEquals(a,
+                        19);
+        assertNotEquals(a,
+                        null);
+
+        a.setExecutionSet(null);
+        assertNotEquals(a,
+                        b);
+        assertNotEquals(b,
+                        a);
+
+        a.setExecutionSet(A_EXECUTION_SET);
+        assertEquals(a,
+                     b);
+
+        a.setProcessData(null);
+        assertNotEquals(a,
+                        b);
+        assertNotEquals(b,
+                        a);
+
+        a.setExecutionSet(A_EXECUTION_SET);
+        a.setProcessData(A_PROCESS_DATA);
+        assertEquals(a,
+                     b);
+
+        a.setProcessData(B_PROCESS_DATA);
+
+        assertNotEquals(a,
+                        b);
+        assertNotEquals(b,
+                        a);
+
+        MultipleInstanceSubprocess.MultipleInstanceSubprocessBuilder builderMessage = new MultipleInstanceSubprocess.MultipleInstanceSubprocessBuilder();
+        MultipleInstanceSubprocess k = builderMessage.build();
+        assertNotEquals(a,
+                        k);
+    }
+
+    @Test
+    public void testMultipleInstanceSubprocessHashCode() {
+        MultipleInstanceSubprocess.MultipleInstanceSubprocessBuilder builder = new MultipleInstanceSubprocess.MultipleInstanceSubprocessBuilder();
+        MultipleInstanceSubprocess a = builder.build();
+        builder = new MultipleInstanceSubprocess.MultipleInstanceSubprocessBuilder();
+        MultipleInstanceSubprocess b = builder.build();
+        assertEquals(a.hashCode(),
+                     b.hashCode());
     }
 
     @Test
@@ -1401,6 +1671,53 @@ public class HashCodeAndEqualityTest {
                 .test();
     }
 
+    @Test
+    public void testIsInterruptingEqualsAndHashCode() {
+        TestCaseBuilder.newTestCase()
+                .addTrueCase(new IsInterrupting(),
+                             new IsInterrupting())
+                .addTrueCase(new IsInterrupting(true),
+                             new IsInterrupting(true))
+                .addTrueCase(new IsInterrupting(false),
+                             new IsInterrupting(false))
+                .addFalseCase(new IsInterrupting(true),
+                              new IsInterrupting(false))
+                .addFalseCase(new IsInterrupting(false),
+                              new IsInterrupting(true))
+                .test();
+    }
+
+    @Test
+    public void testBaseStartEventEqualsAndHashCode() {
+        TestCaseBuilder.newTestCase()
+                .addTrueCase(new BaseStartEventStub(),
+                             new BaseStartEventStub())
+                .addTrueCase(new BaseStartEventStub(new BPMNGeneralSet(),
+                                                    new BackgroundSet(),
+                                                    new FontSet(),
+                                                    new CircleDimensionSet(),
+                                                    new SimulationAttributeSet()),
+                             new BaseStartEventStub(new BPMNGeneralSet(),
+                                                    new BackgroundSet(),
+                                                    new FontSet(),
+                                                    new CircleDimensionSet(),
+                                                    new SimulationAttributeSet()))
+                .addFalseCase(new BaseStartEventStub(),
+                              new BaseStartEventStub(new BPMNGeneralSet(),
+                                                     new BackgroundSet(),
+                                                     new FontSet(),
+                                                     new CircleDimensionSet(),
+                                                     new SimulationAttributeSet()))
+
+                .addFalseCase(new BaseStartEventStub(new BPMNGeneralSet(),
+                                                     new BackgroundSet(),
+                                                     new FontSet(),
+                                                     new CircleDimensionSet(),
+                                                     new SimulationAttributeSet()),
+                              new BaseStartEventStub())
+                .test();
+    }
+
     public static class HashCodeAndEqualityTestCase {
 
         private Object a;
@@ -1479,6 +1796,25 @@ public class HashCodeAndEqualityTest {
                                 Objects.hashCode(testCase.getB()));
             }
             index++;
+        }
+    }
+
+    private class BaseStartEventStub extends BaseStartEvent {
+
+        public BaseStartEventStub() {
+            super();
+        }
+
+        public BaseStartEventStub(BPMNGeneralSet general,
+                                  BackgroundSet backgroundSet,
+                                  FontSet fontSet,
+                                  CircleDimensionSet dimensionsSet,
+                                  SimulationAttributeSet simulationSet) {
+            super(general,
+                  backgroundSet,
+                  fontSet,
+                  dimensionsSet,
+                  simulationSet);
         }
     }
 }

@@ -20,6 +20,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Event;
@@ -36,6 +37,7 @@ import org.guvnor.common.services.project.events.RenameModuleEvent;
 import org.guvnor.common.services.project.model.WorkspaceProject;
 import org.guvnor.common.services.project.service.WorkspaceProjectService;
 import org.guvnor.common.services.project.social.ModuleEventType;
+import org.guvnor.messageconsole.client.console.MessageConsoleScreen;
 import org.guvnor.structure.organizationalunit.OrganizationalUnit;
 import org.guvnor.structure.organizationalunit.RemoveOrganizationalUnitEvent;
 import org.guvnor.structure.repositories.Repository;
@@ -46,6 +48,9 @@ import org.jboss.errai.ioc.client.api.ManagedInstance;
 import org.jboss.errai.ui.client.local.spi.TranslationService;
 import org.kie.soup.commons.validation.PortablePreconditions;
 import org.kie.workbench.common.screens.library.api.LibraryService;
+import org.kie.workbench.common.screens.library.api.ProjectAssetListUpdated;
+import org.kie.workbench.common.screens.library.api.Remote;
+import org.kie.workbench.common.screens.library.api.Routed;
 import org.kie.workbench.common.screens.library.client.events.AssetDetailEvent;
 import org.kie.workbench.common.screens.library.client.events.WorkbenchProjectMetricsEvent;
 import org.kie.workbench.common.screens.library.client.perspective.LibraryPerspective;
@@ -81,14 +86,14 @@ public class LibraryPlaces implements WorkspaceProjectContextChangeHandler {
     public static final String LIBRARY_PERSPECTIVE = "LibraryPerspective";
     public static final String LIBRARY_SCREEN = "LibraryScreen";
     public static final String PROJECT_SCREEN = "ProjectScreen";
-    public static final String IMPORT_PROJECTS_SCREEN = "TrySamplesScreen";
+    public static final String IMPORT_SAMPLE_PROJECTS_SCREEN = "TrySamplesScreen";
     public static final String PROJECT_DETAIL_SCREEN = "ProjectsDetailScreen";
     public static final String ORG_UNITS_METRICS_SCREEN = "OrgUnitsMetricsScreen";
     public static final String PROJECT_METRICS_SCREEN = "ProjectMetricsScreen";
     public static final String ORGANIZATIONAL_UNITS_SCREEN = "LibraryOrganizationalUnitsScreen";
     public static final String PROJECT_SETTINGS = "ProjectSettings";
     public static final String PROJECT_EXPLORER = "org.kie.guvnor.explorer";
-    public static final String MESSAGES = "org.kie.workbench.common.screens.messageconsole.MessageConsole";
+    public static final String ALERTS = MessageConsoleScreen.ALERTS;
     public static final String REPOSITORY_STRUCTURE_SCREEN = "repositoryStructureScreen";
     public static final String ADD_ASSET_SCREEN = "AddAssetsScreen";
 
@@ -101,7 +106,7 @@ public class LibraryPlaces implements WorkspaceProjectContextChangeHandler {
         add(ORGANIZATIONAL_UNITS_SCREEN);
         add(PROJECT_SETTINGS);
         add(ADD_ASSET_SCREEN);
-        add(IMPORT_PROJECTS_SCREEN);
+        add(IMPORT_SAMPLE_PROJECTS_SCREEN);
         add(PreferencesRootScreen.IDENTIFIER);
     }});
 
@@ -145,6 +150,8 @@ public class LibraryPlaces implements WorkspaceProjectContextChangeHandler {
 
     private ManagedInstance<ImportRepositoryPopUpPresenter> importRepositoryPopUpPresenters;
 
+    private Event<ProjectAssetListUpdated> assetListUpdatedEvent;
+
     private boolean docksReady = false;
 
     private boolean docksHidden = true;
@@ -173,7 +180,8 @@ public class LibraryPlaces implements WorkspaceProjectContextChangeHandler {
                          final Caller<VFSService> vfsService,
                          final ProjectScopedResolutionStrategySupplier projectScopedResolutionStrategySupplier,
                          final Event<PreferencesCentralInitializationEvent> preferencesCentralInitializationEvent,
-                         final ManagedInstance<ImportRepositoryPopUpPresenter> importRepositoryPopUpPresenters) {
+                         final ManagedInstance<ImportRepositoryPopUpPresenter> importRepositoryPopUpPresenters,
+                         final @Routed Event<ProjectAssetListUpdated> assetListUpdatedEvent) {
         this.breadcrumbs = breadcrumbs;
         this.ts = ts;
         this.projectMetricsEvent = projectMetricsEvent;
@@ -193,6 +201,7 @@ public class LibraryPlaces implements WorkspaceProjectContextChangeHandler {
         this.projectScopedResolutionStrategySupplier = projectScopedResolutionStrategySupplier;
         this.preferencesCentralInitializationEvent = preferencesCentralInitializationEvent;
         this.importRepositoryPopUpPresenters = importRepositoryPopUpPresenters;
+        this.assetListUpdatedEvent = assetListUpdatedEvent;
     }
 
     @PostConstruct
@@ -211,7 +220,7 @@ public class LibraryPlaces implements WorkspaceProjectContextChangeHandler {
                 final PathPlaceRequest pathPlaceRequest = (PathPlaceRequest) place;
                 setupLibraryBreadCrumbsForAsset(pathPlaceRequest.getPath());
                 showDocks();
-            } else if (!place.getIdentifier().equals(MESSAGES) && isLibraryPlace(place)) {
+            } else if (!place.getIdentifier().equals(ALERTS) && isLibraryPlace(place)) {
                 hideDocks();
                 if (place.getIdentifier().equals(PROJECT_SETTINGS)) {
                     setupLibraryBreadCrumbsForAsset(null);
@@ -223,6 +232,14 @@ public class LibraryPlaces implements WorkspaceProjectContextChangeHandler {
                 }
             }
         }
+    }
+
+    /*
+     * Re-reroutes this event for project screen. If we tried to observe this directly from the project screen,
+     * there are timing issues involved with subscribing to the event.
+     */
+    public void onAssetListUpdateEvent(@Observes @Remote final ProjectAssetListUpdated event) {
+        assetListUpdatedEvent.fire(event);
     }
 
     public void hideDocks() {
@@ -372,10 +389,18 @@ public class LibraryPlaces implements WorkspaceProjectContextChangeHandler {
     }
 
     PlaceRequest getLibraryPlaceRequestWithoutRefresh() {
+        return getPlaceRequestWithoutRefresh(LIBRARY_PERSPECTIVE);
+    }
+
+    PlaceRequest getProjectScreenRequestWithoutRefresh() {
+        return getPlaceRequestWithoutRefresh(PROJECT_SCREEN);
+    }
+
+    private PlaceRequest getPlaceRequestWithoutRefresh(String placeId) {
         final Map<String, String> params = new HashMap<>();
         params.put("refresh",
                    "false");
-        return new DefaultPlaceRequest(LIBRARY_PERSPECTIVE,
+        return new DefaultPlaceRequest(placeId,
                                        params);
     }
 
@@ -422,21 +447,6 @@ public class LibraryPlaces implements WorkspaceProjectContextChangeHandler {
         }
 
         libraryToolbar.setUpBranches();
-    }
-
-    public void setupLibraryBreadCrumbsForImportProjects(final String repositoryUrl) {
-        breadcrumbs.clearBreadcrumbs(LibraryPlaces.LIBRARY_PERSPECTIVE);
-        breadcrumbs.addBreadCrumb(LibraryPlaces.LIBRARY_PERSPECTIVE,
-                                  translationUtils.getOrganizationalUnitAliasInPlural(),
-                                  () -> goToOrganizationalUnits());
-        breadcrumbs.addBreadCrumb(LibraryPlaces.LIBRARY_PERSPECTIVE,
-                                  projectContext.getActiveOrganizationalUnit()
-                                          .orElseThrow(() -> new IllegalStateException("Cannot create library breadcrumb without active space."))
-                                          .getName(),
-                                  () -> goToLibrary());
-        breadcrumbs.addBreadCrumb(LibraryPlaces.LIBRARY_PERSPECTIVE,
-                                  ts.getTranslation(LibraryConstants.ImportProjects),
-                                  () -> goToImportProjects(repositoryUrl));
     }
 
     public void setupLibraryBreadCrumbsForTrySamples() {
@@ -642,11 +652,7 @@ public class LibraryPlaces implements WorkspaceProjectContextChangeHandler {
 
     public void goToTrySamples() {
         if (closeAllPlacesOrNothing()) {
-            Map<String, String> params = new HashMap<>();
-            params.put("trySamples",
-                       "true");
-            final DefaultPlaceRequest placeRequest = new DefaultPlaceRequest(LibraryPlaces.IMPORT_PROJECTS_SCREEN,
-                                                                             params);
+            final DefaultPlaceRequest placeRequest = new DefaultPlaceRequest(LibraryPlaces.IMPORT_SAMPLE_PROJECTS_SCREEN);
             final PartDefinitionImpl part = new PartDefinitionImpl(placeRequest);
             part.setSelectable(false);
 
@@ -661,26 +667,6 @@ public class LibraryPlaces implements WorkspaceProjectContextChangeHandler {
         importRepositoryPopUpPresenter.show();
     }
 
-    public void goToImportProjects(final String repositoryUrl) {
-        if (closeAllPlacesOrNothing()) {
-            Map<String, String> params = new HashMap<>();
-            params.put("title",
-                       ts.getTranslation(LibraryConstants.ImportProjects));
-            if (repositoryUrl != null) {
-                params.put("repositoryUrl",
-                           repositoryUrl);
-            }
-            final DefaultPlaceRequest placeRequest = new DefaultPlaceRequest(LibraryPlaces.IMPORT_PROJECTS_SCREEN,
-                                                                             params);
-            final PartDefinitionImpl part = new PartDefinitionImpl(placeRequest);
-            part.setSelectable(false);
-
-            placeManager.goTo(part,
-                              libraryPerspective.getRootPanel());
-            setupLibraryBreadCrumbsForImportProjects(repositoryUrl);
-        }
-    }
-
     public void goToSettings() {
         final DefaultPlaceRequest placeRequest = new DefaultPlaceRequest(PROJECT_SETTINGS);
         final PartDefinitionImpl part = new PartDefinitionImpl(placeRequest);
@@ -689,10 +675,6 @@ public class LibraryPlaces implements WorkspaceProjectContextChangeHandler {
         closeLibraryPlaces();
         placeManager.goTo(part,
                           libraryPerspective.getRootPanel());
-    }
-
-    public void goToMessages() {
-        placeManager.goTo(MESSAGES);
     }
 
     public void goToPreferences() {

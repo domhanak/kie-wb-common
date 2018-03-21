@@ -17,18 +17,23 @@
 package org.kie.workbench.common.screens.library.client.screens.project;
 
 import javax.annotation.PostConstruct;
+import javax.enterprise.event.Event;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 
 import com.google.gwt.core.client.Callback;
 import elemental2.dom.HTMLElement;
+import elemental2.promise.Promise;
 import org.guvnor.common.services.project.client.security.ProjectController;
 import org.guvnor.common.services.project.model.WorkspaceProject;
+import org.guvnor.messageconsole.client.console.widget.button.ViewHideAlertsButtonPresenter;
 import org.guvnor.structure.client.security.OrganizationalUnitController;
 import org.guvnor.structure.events.AfterEditOrganizationalUnitEvent;
+import org.jboss.errai.bus.client.api.messaging.Message;
 import org.jboss.errai.common.client.api.Caller;
 import org.jboss.errai.common.client.dom.elemental2.Elemental2DomUtil;
 import org.jboss.errai.ioc.client.api.ManagedInstance;
+import org.jboss.errai.ui.client.local.api.elemental2.IsElement;
 import org.kie.workbench.common.screens.defaulteditor.client.editor.NewFileUploader;
 import org.kie.workbench.common.screens.library.api.LibraryService;
 import org.kie.workbench.common.screens.library.client.perspective.LibraryPerspective;
@@ -42,12 +47,20 @@ import org.kie.workbench.common.screens.library.client.screens.project.rename.Re
 import org.kie.workbench.common.screens.library.client.settings.SettingsPresenter;
 import org.kie.workbench.common.screens.library.client.util.LibraryPlaces;
 import org.kie.workbench.common.screens.projecteditor.client.build.BuildExecutor;
+import org.kie.workbench.common.screens.projecteditor.client.validation.ProjectNameValidator;
+import org.kie.workbench.common.screens.projecteditor.service.ProjectScreenService;
 import org.kie.workbench.common.widgets.client.handlers.NewResourcePresenter;
 import org.kie.workbench.common.widgets.client.handlers.NewResourceSuccessEvent;
+import org.uberfire.backend.vfs.Path;
 import org.uberfire.client.annotations.WorkbenchPartTitle;
 import org.uberfire.client.annotations.WorkbenchPartView;
 import org.uberfire.client.annotations.WorkbenchScreen;
 import org.uberfire.client.mvp.UberElemental;
+import org.uberfire.client.promise.Promises;
+import org.uberfire.ext.editor.commons.client.file.CommandWithFileNameAndCommitMessage;
+import org.uberfire.ext.editor.commons.client.file.popups.CopyPopUpPresenter;
+import org.uberfire.ext.widgets.common.client.callbacks.HasBusyIndicatorDefaultErrorCallback;
+import org.uberfire.workbench.events.NotificationEvent;
 
 @WorkbenchScreen(identifier = LibraryPlaces.PROJECT_SCREEN,
         owningPerspective = LibraryPerspective.class)
@@ -58,6 +71,8 @@ public class ProjectScreen {
 
     public interface View extends UberElemental<ProjectScreen>,
                                   BuildExecutor.View {
+
+        void addMainAction(IsElement action);
 
         void setAssetsCount(int count);
 
@@ -78,6 +93,12 @@ public class ProjectScreen {
         void setDeployEnabled(boolean enabled);
 
         void setDeleteProjectVisible(boolean visible);
+
+        String getLoadingMessage();
+
+        String getItemSuccessfullyDuplicatedMessage();
+
+        String getReimportSuccessfulMessage();
     }
 
     private final LibraryPlaces libraryPlaces;
@@ -97,6 +118,12 @@ public class ProjectScreen {
     private ManagedInstance<RenameProjectPopUpScreen> renameProjectPopUpScreen;
     private Caller<LibraryService> libraryService;
     private ProjectScreen.View view;
+    private Caller<ProjectScreenService> projectScreenService;
+    private CopyPopUpPresenter copyPopUpPresenter;
+    private ProjectNameValidator projectNameValidator;
+    private Promises promises;
+    private Event<NotificationEvent> notificationEvent;
+    private ViewHideAlertsButtonPresenter viewHideAlertsButtonPresenter;
 
     @Inject
     public ProjectScreen(final View view,
@@ -114,7 +141,13 @@ public class ProjectScreen {
                          final ManagedInstance<EditContributorsPopUpPresenter> editContributorsPopUpPresenter,
                          final ManagedInstance<DeleteProjectPopUpScreen> deleteProjectPopUpScreen,
                          final ManagedInstance<RenameProjectPopUpScreen> renameProjectPopUpScreen,
-                         final Caller<LibraryService> libraryService) {
+                         final Caller<LibraryService> libraryService,
+                         final Caller<ProjectScreenService> projectScreenService,
+                         final CopyPopUpPresenter copyPopUpPresenter,
+                         final ProjectNameValidator projectNameValidator,
+                         final Promises promises,
+                         final Event<NotificationEvent> notificationEvent,
+                         final ViewHideAlertsButtonPresenter viewHideAlertsButtonPresenter) {
         this.view = view;
         this.libraryPlaces = libraryPlaces;
         this.emptyAssetsScreen = emptyAssetsScreen;
@@ -131,6 +164,12 @@ public class ProjectScreen {
         this.deleteProjectPopUpScreen = deleteProjectPopUpScreen;
         this.renameProjectPopUpScreen = renameProjectPopUpScreen;
         this.libraryService = libraryService;
+        this.projectScreenService = projectScreenService;
+        this.copyPopUpPresenter = copyPopUpPresenter;
+        this.projectNameValidator = projectNameValidator;
+        this.promises = promises;
+        this.notificationEvent = notificationEvent;
+        this.viewHideAlertsButtonPresenter = viewHideAlertsButtonPresenter;
         this.elemental2DomUtil = new Elemental2DomUtil();
     }
 
@@ -140,6 +179,7 @@ public class ProjectScreen {
         this.view.init(this);
         this.buildExecutor.init(this.view);
         this.view.setTitle(libraryPlaces.getActiveWorkspaceContext().getMainModule().getModuleName());
+        this.view.addMainAction(viewHideAlertsButtonPresenter.getView());
         this.resolveContributorsCount();
         this.resolveAssetsCount();
         this.showAssets();
@@ -249,6 +289,68 @@ public class ProjectScreen {
         }
     }
 
+    public void duplicate() {
+        if (this.userCanCreateProjects()) {
+            final Path pomXMLPath = workspaceProject.getMainModule().getPomXMLPath();
+            copyPopUpPresenter.show(
+                    pomXMLPath,
+                    projectNameValidator,
+                    getDuplicateCommand());
+        }
+    }
+
+    CommandWithFileNameAndCommitMessage getDuplicateCommand() {
+        return details -> {
+            copyPopUpPresenter.getView().hide();
+
+            view.showBusyIndicator(view.getLoadingMessage());
+
+            promises.promisify(projectScreenService,
+                               s -> {
+                                   s.copy(workspaceProject,
+                                          details.getNewFileName());
+                               }).then(i -> {
+                view.hideBusyIndicator();
+                notificationEvent.fire(new NotificationEvent(view.getItemSuccessfullyDuplicatedMessage(),
+                                                             NotificationEvent.NotificationType.SUCCESS));
+                return promises.resolve();
+            }).catch_(this::onError);
+        };
+    }
+
+    public void reimport() {
+        if (this.userCanUpdateProject()) {
+            final Path pomXMLPath = workspaceProject.getMainModule().getPomXMLPath();
+            view.showBusyIndicator(view.getLoadingMessage());
+
+            promises.promisify(projectScreenService,
+                               s -> {
+                                   s.reImport(pomXMLPath);
+                               }).then(i -> {
+                view.hideBusyIndicator();
+                notificationEvent.fire(new NotificationEvent(view.getReimportSuccessfulMessage(),
+                                                             NotificationEvent.NotificationType.SUCCESS));
+                return promises.resolve();
+            }).catch_(this::onError);
+        }
+    }
+
+    private Promise<Object> onError(final Object object) {
+        return promises.catchOrExecute(
+                object,
+                e -> {
+                    new HasBusyIndicatorDefaultErrorCallback(view).error(null,
+                                                                         e);
+                    return promises.resolve();
+                },
+                (final Promises.Error<Message> e) -> {
+                    new HasBusyIndicatorDefaultErrorCallback(view).error(e.getObject(),
+                                                                         e.getThrowable());
+                    return promises.resolve();
+                }
+        );
+    }
+
     public void build() {
         if (this.userCanBuildProject()) {
             this.buildExecutor.triggerBuild();
@@ -275,6 +377,10 @@ public class ProjectScreen {
 
     public boolean userCanUpdateProject() {
         return projectController.canUpdateProject(this.workspaceProject);
+    }
+
+    public boolean userCanCreateProjects() {
+        return projectController.canCreateProjects();
     }
 
     @WorkbenchPartView

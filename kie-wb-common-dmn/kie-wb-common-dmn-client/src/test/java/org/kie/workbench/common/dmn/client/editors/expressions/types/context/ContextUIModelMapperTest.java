@@ -21,11 +21,12 @@ import java.util.stream.IntStream;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.kie.workbench.common.dmn.client.widgets.grid.model.DMNGridCell;
 import org.mockito.runners.MockitoJUnitRunner;
-import org.uberfire.ext.wires.core.grids.client.model.impl.BaseGridCell;
 import org.uberfire.ext.wires.core.grids.client.widget.grid.selections.impl.RowSelectionStrategy;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertEquals;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ContextUIModelMapperTest extends BaseContextUIModelMapperTest<ContextUIModelMapper> {
@@ -52,6 +53,17 @@ public class ContextUIModelMapperTest extends BaseContextUIModelMapperTest<Conte
     }
 
     @Test
+    public void testFromDMNModelName() {
+        mapper.fromDMNModel(0, 1);
+        mapper.fromDMNModel(1, 1);
+
+        assertEquals("ii1",
+                     uiModel.getCell(0, 1).getValue().getValue());
+        assertEquals(ContextUIModelMapper.DEFAULT_ROW_CAPTION,
+                     uiModel.getCell(1, 1).getValue().getValue());
+    }
+
+    @Test
     public void testFromDMNModelCellTypes() {
         IntStream.range(0, 2).forEach(rowIndex -> {
             mapper.fromDMNModel(rowIndex, 0);
@@ -63,8 +75,8 @@ public class ContextUIModelMapperTest extends BaseContextUIModelMapperTest<Conte
         assertThat(uiModel.getCell(0, 1)).isInstanceOf(ContextGridCell.class);
         assertThat(uiModel.getCell(0, 2)).isInstanceOf(ContextGridCell.class);
 
-        assertThat(uiModel.getCell(1, 0)).isInstanceOf(BaseGridCell.class);
-        assertThat(uiModel.getCell(1, 1)).isInstanceOf(BaseGridCell.class);
-        assertThat(uiModel.getCell(1, 2)).isInstanceOf(BaseGridCell.class);
+        assertThat(uiModel.getCell(1, 0)).isInstanceOf(DMNGridCell.class);
+        assertThat(uiModel.getCell(1, 1)).isInstanceOf(DMNGridCell.class);
+        assertThat(uiModel.getCell(1, 2)).isInstanceOf(DMNGridCell.class);
     }
 }

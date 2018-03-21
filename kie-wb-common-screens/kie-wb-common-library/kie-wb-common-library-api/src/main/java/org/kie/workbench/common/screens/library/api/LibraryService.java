@@ -51,7 +51,7 @@ public interface LibraryService {
 
     Boolean thereIsAProjectInTheWorkbench();
 
-    List<AssetInfo> getProjectAssets(final ProjectAssetsQuery query);
+    AssetQueryResult getProjectAssets(final ProjectAssetsQuery query);
 
     Boolean hasProjects(final OrganizationalUnit organizationalUnit);
 
@@ -61,6 +61,16 @@ public interface LibraryService {
 
     Boolean hasAssets(final WorkspaceProject project);
 
+    /**
+     * Imports a project from a repository with full history (i.e. `git clone ${repositoryURL}`).
+     */
+    WorkspaceProject importProject(OrganizationalUnit targetOU, String repositoryURL, String username, String password);
+
+    /**
+     * Imports a project by copying the files (without history) from the given {@link ExampleProject}.
+     */
+    WorkspaceProject importProject(OrganizationalUnit targetOU, ExampleProject example);
+
     Set<ExampleProject> getExampleProjects();
 
     Set<ExampleProject> getProjects(final String repositoryUrl);
@@ -68,9 +78,6 @@ public interface LibraryService {
     Set<ExampleProject> getProjects(final String repositoryUrl,
                                     final String userName,
                                     final String password);
-
-    WorkspaceProject importProject(final OrganizationalUnit organizationalUnit,
-                                   final ExampleProject exampleProject);
 
     List<OrganizationalUnit> getOrganizationalUnits();
 
@@ -80,6 +87,4 @@ public interface LibraryService {
                   final OrganizationalUnit selectedOrganizationalUnit);
 
     List<SocialUser> getAllUsers();
-
-    void migrate(final WorkspaceProject activeProject);
 }

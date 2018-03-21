@@ -17,9 +17,15 @@
 
 package org.kie.workbench.common.screens.library.client.screens.project;
 
+import javax.enterprise.event.Event;
+
 import elemental2.dom.HTMLElement;
 import org.guvnor.common.services.project.client.security.ProjectController;
+import org.guvnor.common.services.project.model.Module;
+import org.guvnor.common.services.project.model.WorkspaceProject;
+import org.guvnor.messageconsole.client.console.widget.button.ViewHideAlertsButtonPresenter;
 import org.guvnor.structure.client.security.OrganizationalUnitController;
+import org.jboss.errai.common.client.api.Caller;
 import org.jboss.errai.ioc.client.api.ManagedInstance;
 import org.junit.Before;
 import org.junit.Test;
@@ -36,11 +42,19 @@ import org.kie.workbench.common.screens.library.client.screens.project.rename.Re
 import org.kie.workbench.common.screens.library.client.settings.SettingsPresenter;
 import org.kie.workbench.common.screens.library.client.util.LibraryPlaces;
 import org.kie.workbench.common.screens.projecteditor.client.build.BuildExecutor;
+import org.kie.workbench.common.screens.projecteditor.client.validation.ProjectNameValidator;
+import org.kie.workbench.common.screens.projecteditor.service.ProjectScreenService;
 import org.kie.workbench.common.widgets.client.handlers.NewResourcePresenter;
 import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
+import org.uberfire.ext.editor.commons.client.file.CommandWithFileNameAndCommitMessage;
+import org.uberfire.ext.editor.commons.client.file.FileNameAndCommitMessage;
+import org.uberfire.ext.editor.commons.client.file.popups.CopyPopUpPresenter;
+import org.uberfire.ext.editor.commons.client.file.popups.CopyPopUpView;
 import org.uberfire.mocks.CallerMock;
+import org.uberfire.promise.SyncPromises;
+import org.uberfire.workbench.events.NotificationEvent;
 
 import static org.mockito.Mockito.*;
 
@@ -60,6 +74,9 @@ public class ProjectScreenTest extends ProjectScreenTestBase {
 
     @Mock
     private AssetsScreen assetsScreen;
+
+    @Mock
+    private AssetsScreen.View assetsView;
 
     @Mock
     private ContributorsListPresenter contributorsListScreen;
@@ -106,12 +123,44 @@ public class ProjectScreenTest extends ProjectScreenTestBase {
     @Mock
     private SettingsPresenter settingsPresenter;
 
+    @Mock
+    private ProjectScreenService projectScreenService;
+    private Caller<ProjectScreenService> projectScreenServiceCaller;
+
+    @Mock
+    private CopyPopUpPresenter copyPopUpPresenter;
+
+    @Mock
+    private ProjectNameValidator projectNameValidator;
+
+    @Mock
+    private Event<NotificationEvent> notificationEvent;
+
+    @Mock
+    private ViewHideAlertsButtonPresenter viewHideAlertsButtonPresenter;
+
+    @Mock
+    private ViewHideAlertsButtonPresenter.View viewHideAlertsButtonView;
+
+    private SyncPromises promises;
+
     @Before
     public void setUp() {
+        projectScreenServiceCaller = new CallerMock<>(projectScreenService);
+        promises = spy(new SyncPromises());
+
+        when(assetsScreen.getView()).thenReturn(assetsView);
+        when(viewHideAlertsButtonPresenter.getView()).thenReturn(viewHideAlertsButtonView);
 
         when(editContributorsPopUpPresenterInstance.get()).thenReturn(editContributorsPopUpPresenter);
         when(deleteProjectPopUpScreenInstance.get()).thenReturn(deleteProjectPopUpScreen);
         when(renameProjectPopUpScreenInstance.get()).thenReturn(renameProjectPopUpScreen);
+
+        final WorkspaceProject workspaceProject = mock(WorkspaceProject.class);
+        final Module module = mock(Module.class);
+        when(module.getModuleName()).thenReturn("module-name");
+        when(workspaceProject.getMainModule()).thenReturn(module);
+        when(libraryPlaces.getActiveWorkspaceContext()).thenReturn(workspaceProject);
 
         this.presenter = spy(new ProjectScreen(this.view,
                                                this.libraryPlaces,
@@ -128,9 +177,25 @@ public class ProjectScreenTest extends ProjectScreenTestBase {
                                                this.editContributorsPopUpPresenterInstance,
                                                this.deleteProjectPopUpScreenInstance,
                                                this.renameProjectPopUpScreenInstance,
-                                               new CallerMock<>(this.libraryService)));
+                                               new CallerMock<>(this.libraryService),
+                                               projectScreenServiceCaller,
+                                               copyPopUpPresenter,
+                                               projectNameValidator,
+                                               promises,
+                                               notificationEvent,
+                                               viewHideAlertsButtonPresenter));
 
         this.presenter.workspaceProject = createProject();
+    }
+
+    @Test
+    public void testInitialize() {
+        presenter.initialize();
+
+        verify(view).init(presenter);
+        verify(buildExecutor).init(view);
+        verify(view).setTitle("module-name");
+        verify(view).addMainAction(viewHideAlertsButtonView);
     }
 
     @Test
@@ -247,6 +312,70 @@ public class ProjectScreenTest extends ProjectScreenTestBase {
             this.presenter.build();
             verify(this.buildExecutor,
                    times(1)).triggerBuild();
+        }
+    }
+
+    @Test
+    public void testDuplicate() {
+        {
+            doReturn(false).when(this.presenter).userCanCreateProjects();
+            this.presenter.duplicate();
+            verify(this.copyPopUpPresenter,
+                   never()).show(any(),
+                                 any(),
+                                 any());
+        }
+        {
+            doReturn(true).when(this.presenter).userCanCreateProjects();
+            CommandWithFileNameAndCommitMessage duplicateCommand = mock(CommandWithFileNameAndCommitMessage.class);
+            doReturn(duplicateCommand).when(presenter).getDuplicateCommand();
+            this.presenter.duplicate();
+            verify(this.copyPopUpPresenter).show(presenter.workspaceProject.getMainModule().getPomXMLPath(),
+                                                 projectNameValidator,
+                                                 duplicateCommand);
+        }
+    }
+
+    @Test
+    public void testDuplicateCommand() {
+        doNothing().when(projectScreenService).copy(any(),
+                                                    any());
+        final CopyPopUpView copyPopUpView = mock(CopyPopUpView.class);
+        doReturn(copyPopUpView).when(copyPopUpPresenter).getView();
+
+        this.presenter.getDuplicateCommand().execute(new FileNameAndCommitMessage("newFileName",
+                                                                                  "commitMessage"));
+
+        verify(copyPopUpView).hide();
+        verify(view).showBusyIndicator(anyString());
+        verify(projectScreenService).copy(presenter.workspaceProject,
+                                          "newFileName");
+        verify(view).hideBusyIndicator();
+        verify(notificationEvent).fire(any());
+        verify(promises).resolve();
+    }
+
+    @Test
+    public void testReimport() {
+        {
+            doReturn(false).when(this.presenter).userCanUpdateProject();
+            this.presenter.reimport();
+            verify(this.copyPopUpPresenter,
+                   never()).show(any(),
+                                 any(),
+                                 any());
+        }
+        {
+            doNothing().when(projectScreenService).reImport(any());
+            doReturn(true).when(this.presenter).userCanUpdateProject();
+            CommandWithFileNameAndCommitMessage duplicateCommand = mock(CommandWithFileNameAndCommitMessage.class);
+            doReturn(duplicateCommand).when(presenter).getDuplicateCommand();
+            this.presenter.reimport();
+            verify(view).showBusyIndicator(anyString());
+            verify(projectScreenService).reImport(presenter.workspaceProject.getMainModule().getPomXMLPath());
+            verify(view).hideBusyIndicator();
+            verify(notificationEvent).fire(any());
+            verify(promises).resolve();
         }
     }
 }

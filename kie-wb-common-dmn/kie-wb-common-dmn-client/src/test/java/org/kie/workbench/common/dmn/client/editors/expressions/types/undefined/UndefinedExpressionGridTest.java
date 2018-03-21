@@ -36,13 +36,12 @@ import org.kie.workbench.common.dmn.client.editors.expressions.types.ExpressionE
 import org.kie.workbench.common.dmn.client.editors.expressions.types.ExpressionType;
 import org.kie.workbench.common.dmn.client.editors.expressions.types.context.ContextGrid;
 import org.kie.workbench.common.dmn.client.editors.expressions.types.literal.LiteralExpressionCell;
-import org.kie.workbench.common.dmn.client.events.ExpressionEditorSelectedEvent;
 import org.kie.workbench.common.dmn.client.widgets.grid.BaseExpressionGrid;
-import org.kie.workbench.common.dmn.client.widgets.grid.controls.container.CellEditorControls;
+import org.kie.workbench.common.dmn.client.widgets.grid.controls.container.CellEditorControlsView;
 import org.kie.workbench.common.dmn.client.widgets.grid.controls.list.HasListSelectorControl;
 import org.kie.workbench.common.dmn.client.widgets.grid.controls.list.HasListSelectorControl.ListSelectorDividerItem;
 import org.kie.workbench.common.dmn.client.widgets.grid.controls.list.HasListSelectorControl.ListSelectorTextItem;
-import org.kie.workbench.common.dmn.client.widgets.grid.controls.list.ListSelector;
+import org.kie.workbench.common.dmn.client.widgets.grid.controls.list.ListSelectorView;
 import org.kie.workbench.common.dmn.client.widgets.grid.model.DMNGridData;
 import org.kie.workbench.common.dmn.client.widgets.grid.model.GridCellTuple;
 import org.kie.workbench.common.dmn.client.widgets.layer.DMNGridLayer;
@@ -58,7 +57,6 @@ import org.uberfire.ext.wires.core.grids.client.model.GridData;
 import org.uberfire.ext.wires.core.grids.client.model.impl.BaseGridCell;
 import org.uberfire.ext.wires.core.grids.client.widget.grid.GridWidget;
 import org.uberfire.ext.wires.core.grids.client.widget.layer.impl.GridLayerRedrawManager;
-import org.uberfire.mocks.EventSourceMock;
 import org.uberfire.mvp.Command;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -76,6 +74,8 @@ import static org.mockito.Mockito.when;
 
 @RunWith(LienzoMockitoTestRunner.class)
 public class UndefinedExpressionGridTest {
+
+    private static final boolean NESTED = false;
 
     @Mock
     private DMNGridPanel gridPanel;
@@ -99,16 +99,13 @@ public class UndefinedExpressionGridTest {
     private Supplier<ExpressionEditorDefinitions> expressionEditorDefinitionsSupplier;
 
     @Mock
-    private EventSourceMock<ExpressionEditorSelectedEvent> editorSelectedEvent;
-
-    @Mock
-    private CellEditorControls cellEditorControls;
+    private CellEditorControlsView.Presenter cellEditorControls;
 
     @Mock
     private TranslationService translationService;
 
     @Mock
-    private ListSelector listSelector;
+    private ListSelectorView.Presenter listSelector;
 
     @Mock
     private GridCellTuple parent;
@@ -145,7 +142,6 @@ public class UndefinedExpressionGridTest {
                                                                                                        sessionManager,
                                                                                                        sessionCommandManager,
                                                                                                        expressionEditorDefinitionsSupplier,
-                                                                                                       editorSelectedEvent,
                                                                                                        cellEditorControls,
                                                                                                        translationService,
                                                                                                        listSelector);
@@ -177,7 +173,7 @@ public class UndefinedExpressionGridTest {
                                                                        hasExpression,
                                                                        expression,
                                                                        hasName,
-                                                                       false).get());
+                                                                       NESTED).get());
     }
 
     @Test
@@ -196,19 +192,17 @@ public class UndefinedExpressionGridTest {
     }
 
     @Test
-    public void testGetEditorControls() {
-        assertThat(grid.getEditorControls().isPresent()).isFalse();
+    public void testPaddingWithParent() {
+        doReturn(Optional.of(mock(BaseExpressionGrid.class))).when(grid).findParentGrid();
+
+        assertThat(grid.getPadding()).isEqualTo(UndefinedExpressionGrid.PADDING);
     }
 
     @Test
-    public void testGetItemsWithNoParent() {
-        final List<HasListSelectorControl.ListSelectorItem> items = grid.getItems(0, 0);
+    public void testPaddingWithNoParent() {
+        doReturn(Optional.empty()).when(grid).findParentGrid();
 
-        assertThat(items.size()).isEqualTo(1);
-        assertThat(items.get(0)).isInstanceOf(ListSelectorTextItem.class);
-
-        final ListSelectorTextItem ti = (ListSelectorTextItem) items.get(0);
-        assertThat(ti.getText()).isEqualTo(LiteralExpression.class.getSimpleName());
+        assertThat(grid.getPadding()).isEqualTo(UndefinedExpressionGrid.PADDING);
     }
 
     @Test
@@ -221,11 +215,7 @@ public class UndefinedExpressionGridTest {
 
         final List<HasListSelectorControl.ListSelectorItem> items = grid.getItems(0, 0);
 
-        assertThat(items.size()).isEqualTo(1);
-        assertThat(items.get(0)).isInstanceOf(ListSelectorTextItem.class);
-
-        final ListSelectorTextItem ti = (ListSelectorTextItem) items.get(0);
-        assertThat(ti.getText()).isEqualTo(LiteralExpression.class.getSimpleName());
+        assertThat(items).isEmpty();
     }
 
     @Test
@@ -243,14 +233,8 @@ public class UndefinedExpressionGridTest {
         final List<HasListSelectorControl.ListSelectorItem> items = grid.getItems(0, 0);
 
         assertThat(items).isNotEmpty();
-        assertThat(items.size()).isEqualTo(3);
-
-        assertThat(items.get(0)).isInstanceOf(ListSelectorTextItem.class);
-        final ListSelectorTextItem ti = (ListSelectorTextItem) items.get(0);
-        assertThat(ti.getText()).isEqualTo(LiteralExpression.class.getSimpleName());
-
-        assertThat(items.get(1)).isInstanceOf(HasListSelectorControl.ListSelectorDividerItem.class);
-        assertThat(items.get(2)).isSameAs(listSelectorItem);
+        assertThat(items.size()).isEqualTo(1);
+        assertThat(items.get(0)).isSameAs(listSelectorItem);
     }
 
     @Test
@@ -267,12 +251,7 @@ public class UndefinedExpressionGridTest {
 
         final List<HasListSelectorControl.ListSelectorItem> items = grid.getItems(0, 0);
 
-        assertThat(items).isNotEmpty();
-        assertThat(items.size()).isEqualTo(1);
-
-        assertThat(items.get(0)).isInstanceOf(ListSelectorTextItem.class);
-        final ListSelectorTextItem ti = (ListSelectorTextItem) items.get(0);
-        assertThat(ti.getText()).isEqualTo(LiteralExpression.class.getSimpleName());
+        assertThat(items).isEmpty();
     }
 
     @Test
@@ -285,12 +264,7 @@ public class UndefinedExpressionGridTest {
 
         final List<HasListSelectorControl.ListSelectorItem> items = grid.getItems(0, 0);
 
-        assertThat(items).isNotEmpty();
-        assertThat(items.size()).isEqualTo(1);
-
-        assertThat(items.get(0)).isInstanceOf(ListSelectorTextItem.class);
-        final ListSelectorTextItem ti = (ListSelectorTextItem) items.get(0);
-        assertThat(ti.getText()).isEqualTo(LiteralExpression.class.getSimpleName());
+        assertThat(items).isEmpty();
     }
 
     @Test
@@ -316,7 +290,7 @@ public class UndefinedExpressionGridTest {
     @Test
     public void testOnItemSelected() {
         final Command command = mock(Command.class);
-        final HasListSelectorControl.ListSelectorTextItem listSelectorItem = mock(HasListSelectorControl.ListSelectorTextItem.class);
+        final ListSelectorTextItem listSelectorItem = mock(ListSelectorTextItem.class);
         when(listSelectorItem.getCommand()).thenReturn(command);
 
         grid.onItemSelected(listSelectorItem);
@@ -325,18 +299,15 @@ public class UndefinedExpressionGridTest {
     }
 
     @Test
-    public void testOnItemSelectedWithExpressionTypeSelected() {
-        final List<HasListSelectorControl.ListSelectorItem> items = grid.getItems(0, 0);
-        final ListSelectorTextItem ti = (ListSelectorTextItem) items.get(0);
-
-        grid.onItemSelected(ti);
-
-        verify(grid).onExpressionTypeChanged(eq(ExpressionType.LITERAL_EXPRESSION));
-    }
-
-    @Test
+    @SuppressWarnings("unchecked")
     public void testOnExpressionTypeChanged() {
         grid.onExpressionTypeChanged(ExpressionType.LITERAL_EXPRESSION);
+
+        verify(literalExpressionEditorDefinition).getEditor(eq(parent),
+                                                            eq(hasExpression),
+                                                            eq(Optional.of(literalExpression)),
+                                                            eq(hasName),
+                                                            eq(NESTED));
 
         verify(sessionCommandManager).execute(eq(handler),
                                               setCellValueCommandArgumentCaptor.capture());

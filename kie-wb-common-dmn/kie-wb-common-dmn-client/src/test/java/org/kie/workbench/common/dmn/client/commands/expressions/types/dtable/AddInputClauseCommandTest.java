@@ -27,9 +27,10 @@ import org.kie.workbench.common.dmn.api.definition.v1_1.DecisionTable;
 import org.kie.workbench.common.dmn.api.definition.v1_1.InputClause;
 import org.kie.workbench.common.dmn.api.definition.v1_1.UnaryTests;
 import org.kie.workbench.common.dmn.client.editors.expressions.types.dtable.DecisionTableUIModelMapper;
+import org.kie.workbench.common.dmn.client.editors.expressions.types.dtable.DecisionTableUIModelMapperHelper;
 import org.kie.workbench.common.dmn.client.editors.expressions.types.dtable.InputClauseColumn;
+import org.kie.workbench.common.dmn.client.widgets.grid.controls.list.ListSelectorView;
 import org.kie.workbench.common.dmn.client.widgets.grid.model.DMNGridData;
-import org.kie.workbench.common.dmn.client.widgets.layer.DMNGridLayer;
 import org.kie.workbench.common.stunner.core.client.canvas.AbstractCanvasHandler;
 import org.kie.workbench.common.stunner.core.client.command.CanvasCommandResultBuilder;
 import org.kie.workbench.common.stunner.core.client.command.CanvasViolation;
@@ -45,6 +46,7 @@ import org.uberfire.ext.wires.core.grids.client.widget.grid.columns.RowNumberCol
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -52,13 +54,13 @@ import static org.mockito.Mockito.verify;
 public class AddInputClauseCommandTest {
 
     @Mock
-    private DMNGridLayer selectionManager;
-
-    @Mock
     private RowNumberColumn uiRowNumberColumn;
 
     @Mock
     private InputClauseColumn uiInputClauseColumn;
+
+    @Mock
+    private ListSelectorView.Presenter listSelector;
 
     @Mock
     private AbstractCanvasHandler canvasHandler;
@@ -82,20 +84,31 @@ public class AddInputClauseCommandTest {
     @Before
     public void setUp() throws Exception {
         this.dtable = new DecisionTable();
-        this.uiModel = new DMNGridData(selectionManager);
+        this.uiModel = new DMNGridData();
         this.uiModel.appendColumn(uiRowNumberColumn);
         this.inputClause = new InputClause();
         this.uiModelMapper = new DecisionTableUIModelMapper(() -> uiModel,
-                                                            () -> Optional.of(dtable));
-
-        this.command = new AddInputClauseCommand(dtable, inputClause, uiModel, uiInputClauseColumn, uiModelMapper, canvasOperation);
+                                                            () -> Optional.of(dtable),
+                                                            listSelector);
 
         doReturn(0).when(uiRowNumberColumn).getIndex();
         doReturn(1).when(uiInputClauseColumn).getIndex();
     }
 
+    private void makeCommand(final int index) {
+        this.command = spy(new AddInputClauseCommand(dtable,
+                                                     inputClause,
+                                                     uiModel,
+                                                     uiInputClauseColumn,
+                                                     index,
+                                                     uiModelMapper,
+                                                     canvasOperation));
+    }
+
     @Test
     public void testGraphCommandAllow() throws Exception {
+        makeCommand(DecisionTableUIModelMapperHelper.ROW_INDEX_COLUMN_COUNT);
+
         final Command<GraphCommandExecutionContext, RuleViolation> graphCommand = command.newGraphCommand(canvasHandler);
 
         assertEquals(GraphCommandResultBuilder.SUCCESS,
@@ -104,6 +117,8 @@ public class AddInputClauseCommandTest {
 
     @Test
     public void testGraphCommandExecute() throws Exception {
+        makeCommand(DecisionTableUIModelMapperHelper.ROW_INDEX_COLUMN_COUNT);
+
         dtable.getRule().add(new DecisionRule());
         dtable.getRule().add(new DecisionRule());
         assertEquals(0, dtable.getInput().size());
@@ -127,6 +142,8 @@ public class AddInputClauseCommandTest {
 
     @Test
     public void testGraphCommandExecuteExistingNotAffected() throws Exception {
+        makeCommand(DecisionTableUIModelMapperHelper.ROW_INDEX_COLUMN_COUNT);
+
         final String ruleOneOldInput = "old rule 1";
         final String ruleTwoOldInput = "old rule 2";
 
@@ -136,6 +153,7 @@ public class AddInputClauseCommandTest {
 
         assertEquals(1, dtable.getInput().size());
 
+        //Graph command will insert new InputClause at index 0 of the InputEntries
         final Command<GraphCommandExecutionContext, RuleViolation> graphCommand = command.newGraphCommand(canvasHandler);
 
         assertEquals(GraphCommandResultBuilder.SUCCESS,
@@ -145,17 +163,19 @@ public class AddInputClauseCommandTest {
 
         // first rule
         assertEquals(2, dtable.getRule().get(0).getInputEntry().size());
-        assertEquals(ruleOneOldInput, dtable.getRule().get(0).getInputEntry().get(0).getText());
-        assertEquals(AddInputClauseCommand.INPUT_CLAUSE_DEFAULT_VALUE, dtable.getRule().get(0).getInputEntry().get(1).getText());
+        assertEquals(ruleOneOldInput, dtable.getRule().get(0).getInputEntry().get(1).getText());
+        assertEquals(AddInputClauseCommand.INPUT_CLAUSE_DEFAULT_VALUE, dtable.getRule().get(0).getInputEntry().get(0).getText());
 
         // second rule
         assertEquals(2, dtable.getRule().get(1).getInputEntry().size());
-        assertEquals(ruleTwoOldInput, dtable.getRule().get(1).getInputEntry().get(0).getText());
-        assertEquals(AddInputClauseCommand.INPUT_CLAUSE_DEFAULT_VALUE, dtable.getRule().get(1).getInputEntry().get(1).getText());
+        assertEquals(ruleTwoOldInput, dtable.getRule().get(1).getInputEntry().get(1).getText());
+        assertEquals(AddInputClauseCommand.INPUT_CLAUSE_DEFAULT_VALUE, dtable.getRule().get(1).getInputEntry().get(0).getText());
     }
 
     @Test(expected = ArrayIndexOutOfBoundsException.class)
     public void testGraphCommandUndoNoInputClauseColumns() throws Exception {
+        makeCommand(DecisionTableUIModelMapperHelper.ROW_INDEX_COLUMN_COUNT);
+
         dtable.getRule().add(new DecisionRule());
 
         assertEquals(0, dtable.getInput().size());
@@ -168,6 +188,8 @@ public class AddInputClauseCommandTest {
 
     @Test
     public void testGraphCommandUndoJustLastInputClauseColumn() throws Exception {
+        makeCommand(DecisionTableUIModelMapperHelper.ROW_INDEX_COLUMN_COUNT);
+
         final String ruleOneOldInput = "old rule 1";
         final String ruleTwoOldInput = "old rule 2";
 
@@ -198,6 +220,8 @@ public class AddInputClauseCommandTest {
 
     @Test
     public void testCanvasCommandAllow() throws Exception {
+        makeCommand(DecisionTableUIModelMapperHelper.ROW_INDEX_COLUMN_COUNT);
+
         final Command<AbstractCanvasHandler, CanvasViolation> canvasCommand = command.newCanvasCommand(canvasHandler);
 
         assertEquals(CanvasCommandResultBuilder.SUCCESS,
@@ -206,17 +230,21 @@ public class AddInputClauseCommandTest {
 
     @Test
     public void testCanvasCommandAddRuleAndThenUndo() throws Exception {
+        makeCommand(DecisionTableUIModelMapperHelper.ROW_INDEX_COLUMN_COUNT);
+
         final String ruleOneInputValue = "one";
         final String ruleTwoInputValue = "two";
 
-        addRuleWithInputClauseValues(ruleOneInputValue);
-        addRuleWithInputClauseValues(ruleTwoInputValue);
+        dtable.getRule().add(new DecisionRule());
+        dtable.getRule().add(new DecisionRule());
+        uiModel.appendRow(new BaseGridRow());
+        uiModel.appendRow(new BaseGridRow());
 
+        //Graph command populates InputEntries so overwrite with test values
         final Command<GraphCommandExecutionContext, RuleViolation> graphCommand = command.newGraphCommand(canvasHandler);
         graphCommand.execute(graphCommandExecutionContext);
-
-        uiModel.appendRow(new BaseGridRow());
-        uiModel.appendRow(new BaseGridRow());
+        dtable.getRule().get(0).getInputEntry().get(0).setText(ruleOneInputValue);
+        dtable.getRule().get(1).getInputEntry().get(0).setText(ruleTwoInputValue);
 
         final Command<AbstractCanvasHandler, CanvasViolation> canvasAddInputClauseCommand = command.newCanvasCommand(canvasHandler);
         canvasAddInputClauseCommand.execute(canvasHandler);
@@ -234,10 +262,13 @@ public class AddInputClauseCommandTest {
 
         // one time in execute(), one time in undo()
         verify(canvasOperation, times(2)).execute();
+        verify(command, times(2)).updateParentInformation();
     }
 
     @Test
     public void testCanvasCommandUndoWhenNothingBefore() throws Exception {
+        makeCommand(DecisionTableUIModelMapperHelper.ROW_INDEX_COLUMN_COUNT);
+
         final Command<AbstractCanvasHandler, CanvasViolation> canvasAddInputClauseCommand = command.newCanvasCommand(canvasHandler);
 
         canvasAddInputClauseCommand.undo(canvasHandler);
@@ -245,6 +276,7 @@ public class AddInputClauseCommandTest {
         assertEquals(1, uiModel.getColumnCount());
 
         verify(canvasOperation).execute();
+        verify(command).updateParentInformation();
     }
 
     private void addRuleWithInputClauseValues(String... inputClauseValues) {

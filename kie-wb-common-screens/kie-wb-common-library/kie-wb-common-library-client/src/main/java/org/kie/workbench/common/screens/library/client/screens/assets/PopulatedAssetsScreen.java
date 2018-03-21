@@ -18,16 +18,16 @@ package org.kie.workbench.common.screens.library.client.screens.assets;
 
 import java.util.List;
 import java.util.stream.Collectors;
+
 import javax.annotation.PostConstruct;
 import javax.enterprise.event.Event;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 
-import com.google.gwt.core.client.Scheduler;
 import org.ext.uberfire.social.activities.client.widgets.utils.SocialDateFormatter;
 import org.guvnor.common.services.project.client.security.ProjectController;
+import org.guvnor.common.services.project.context.WorkspaceProjectContextChangeEvent;
 import org.guvnor.common.services.project.model.WorkspaceProject;
-import org.jboss.errai.common.client.api.Caller;
 import org.jboss.errai.common.client.api.RemoteCallback;
 import org.jboss.errai.ioc.client.api.ManagedInstance;
 import org.jboss.errai.ui.client.local.spi.TranslationService;
@@ -36,8 +36,10 @@ import org.kie.workbench.common.screens.explorer.client.utils.Classifier;
 import org.kie.workbench.common.screens.explorer.client.utils.Utils;
 import org.kie.workbench.common.screens.explorer.model.FolderItemType;
 import org.kie.workbench.common.screens.library.api.AssetInfo;
-import org.kie.workbench.common.screens.library.api.LibraryService;
+import org.kie.workbench.common.screens.library.api.AssetQueryResult;
+import org.kie.workbench.common.screens.library.api.ProjectAssetListUpdated;
 import org.kie.workbench.common.screens.library.api.ProjectAssetsQuery;
+import org.kie.workbench.common.screens.library.api.Routed;
 import org.kie.workbench.common.screens.library.client.resources.i18n.LibraryConstants;
 import org.kie.workbench.common.screens.library.client.screens.EmptyState;
 import org.kie.workbench.common.screens.library.client.screens.assets.events.UpdatedAssetsEvent;
@@ -49,7 +51,7 @@ import org.uberfire.backend.vfs.Path;
 import org.uberfire.client.mvp.CategoriesManagerCache;
 import org.uberfire.client.mvp.ResourceTypeManagerCache;
 import org.uberfire.client.mvp.UberElemental;
-import org.uberfire.client.workbench.events.PlaceGainFocusEvent;
+import org.uberfire.client.workbench.events.SelectPlaceEvent;
 import org.uberfire.client.workbench.type.ClientResourceType;
 import org.uberfire.ext.widgets.common.client.callbacks.DefaultErrorCallback;
 import org.uberfire.ext.widgets.common.client.common.BusyIndicatorView;
@@ -76,14 +78,14 @@ public class PopulatedAssetsScreen {
     private Event<UpdatedAssetsEvent> updatedAssetsEventEvent;
     private EmptyState emptyState;
     private CategoryUtils categoryUtils;
-    private Caller<LibraryService> libraryService;
     private WorkspaceProject workspaceProject;
     private int currentPage;
     private int pageSize;
     private String filter;
-    private Reloader reloader = new Reloader();
     private int totalPages;
     private String filterType;
+    private final Event<WorkspaceProjectContextChangeEvent> contextChangeEvent;
+    private AssetQueryService assetQueryService;
 
     public interface View extends UberElemental<PopulatedAssetsScreen> {
 
@@ -129,7 +131,8 @@ public class PopulatedAssetsScreen {
                                  final Event<UpdatedAssetsEvent> updatedAssetsEventEvent,
                                  final EmptyState emptyState,
                                  final CategoryUtils categoryUtils,
-                                 final Caller<LibraryService> libraryService) {
+                                 final AssetQueryService assetQueryService,
+                                 final Event<WorkspaceProjectContextChangeEvent> contextChangeEvent) {
         this.view = view;
         this.categoriesManagerCache = categoriesManagerCache;
         this.resourceTypeManagerCache = resourceTypeManagerCache;
@@ -144,7 +147,8 @@ public class PopulatedAssetsScreen {
         this.updatedAssetsEventEvent = updatedAssetsEventEvent;
         this.emptyState = emptyState;
         this.categoryUtils = categoryUtils;
-        this.libraryService = libraryService;
+        this.assetQueryService = assetQueryService;
+        this.contextChangeEvent = contextChangeEvent;
     }
 
     @PostConstruct
@@ -152,48 +156,59 @@ public class PopulatedAssetsScreen {
         this.workspaceProject = libraryPlaces.getActiveWorkspaceContext();
         this.view.init(this);
         this.filterType = "ALL";
-        if (!reloader.isAssetsLoadingFinished()) {
-            busyIndicatorView.showBusyIndicator(ts.getTranslation(LibraryConstants.LoadingAssets));
-        }
         this.view.setCategories(this.categoryUtils.createCategories());
         this.filter = "";
         this.currentPage = 1;
         this.pageSize = 15;
     }
 
-    private void addAssetsToView(List<AssetInfo> assetInfos) {
-
-        if (!reloader.isAssetsLoadingFinished()) {
-            this.showIndexingNotFinished();
-            reloader.check(assetInfos);
+    public void onAssetListUpdated(@Observes @Routed ProjectAssetListUpdated event) {
+        if (event.getProject().getRepository().getIdentifier().equals(workspaceProject.getRepository().getIdentifier())) {
+            update();
         }
+    }
 
-        if (assetInfos.isEmpty()) {
-            this.showSearchHitNothing();
-        } else {
-            this.hideEmptyState();
-            assetInfos.forEach(asset -> {
-                if (!asset.getFolderItem().getType().equals(FolderItemType.FOLDER)) {
-                    AssetItemWidget item = assetItemWidget.get();
-                    final ClientResourceType assetResourceType = getResourceType(asset);
-                    final String assetName = getAssetName(asset,
-                                                          assetResourceType);
+    private void addAssetsToView(AssetQueryResult result) {
+        switch (result.getResultType()) {
+            case Normal: {
+                List<AssetInfo> assetInfos = result.getAssetInfos().get();
+                if (assetInfos.isEmpty()) {
+                    this.showSearchHitNothing();
+                } else {
+                    this.hideEmptyState();
+                    assetInfos.forEach(asset -> {
+                        if (!asset.getFolderItem().getType().equals(FolderItemType.FOLDER)) {
+                            AssetItemWidget item = assetItemWidget.get();
+                            final ClientResourceType assetResourceType = getResourceType(asset);
+                            final String assetName = getAssetName(asset,
+                                                                  assetResourceType);
 
-                    item.init(assetName,
-                              getAssetPath(asset),
-                              assetResourceType.getDescription(),
-                              assetResourceType.getIcon(),
-                              getLastModifiedTime(asset),
-                              getCreatedTime(asset),
-                              detailsCommand((Path) asset.getFolderItem().getItem()),
-                              selectCommand((Path) asset.getFolderItem().getItem()));
-                    this.view.addAssetItem(item);
+                            item.init(assetName,
+                                      getAssetPath(asset),
+                                      assetResourceType.getDescription(),
+                                      assetResourceType.getIcon(),
+                                      getLastModifiedTime(asset),
+                                      getCreatedTime(asset),
+                                      detailsCommand((Path) asset.getFolderItem().getItem()),
+                                      selectCommand((Path) asset.getFolderItem().getItem()));
+                            this.view.addAssetItem(item);
+                        }
+                    });
                 }
-            });
-        }
 
-        this.updatedAssetsEventEvent.fire(new UpdatedAssetsEvent(assetInfos));
-        busyIndicatorView.hideBusyIndicator();
+                this.updatedAssetsEventEvent.fire(new UpdatedAssetsEvent(assetInfos));
+                busyIndicatorView.hideBusyIndicator();
+            }
+            break;
+            case Unindexed:
+                showIndexingNotFinished();
+                break;
+            case DoesNotExist:
+                contextChangeEvent.fire(new WorkspaceProjectContextChangeEvent(workspaceProject.getOrganizationalUnit()));
+                break;
+            default:
+                throw new UnsupportedOperationException("No case for " + result.getResultType());
+        }
     }
 
     public void importAsset() {
@@ -273,6 +288,7 @@ public class PopulatedAssetsScreen {
     protected void update() {
         this.view.clear();
         this.hideEmptyState();
+        busyIndicatorView.showBusyIndicator(ts.getTranslation(LibraryConstants.LoadingAssets));
         this.resolveAssetsCount();
         this.getAssets(this.filter,
                        this.filterType,
@@ -343,7 +359,7 @@ public class PopulatedAssetsScreen {
                            String filterType,
                            int startIndex,
                            int amount,
-                           RemoteCallback<List<AssetInfo>> callback) {
+                           RemoteCallback<AssetQueryResult> callback) {
 
         if (!isProjectNull()) {
             ProjectAssetsQuery query = this.createProjectQuery(filter,
@@ -351,8 +367,8 @@ public class PopulatedAssetsScreen {
                                                                startIndex,
                                                                amount);
 
-            libraryService.call(callback,
-                                new DefaultErrorCallback()).getProjectAssets(query);
+            assetQueryService.getAssets(query)
+                             .call(callback, new DefaultErrorCallback());
         }
     }
 
@@ -382,8 +398,8 @@ public class PopulatedAssetsScreen {
         resolveAssetsCount();
     }
 
-    protected void refreshOnFocus(@Observes final PlaceGainFocusEvent placeGainFocusEvent) {
-        final PlaceRequest place = placeGainFocusEvent.getPlace();
+    protected void refreshOnFocus(@Observes final SelectPlaceEvent selectPlaceEvent) {
+        final PlaceRequest place = selectPlaceEvent.getPlace();
         if (workspaceProject != null && place.getIdentifier().equals(LibraryPlaces.PROJECT_SCREEN)) {
             this.update();
         }
@@ -430,7 +446,8 @@ public class PopulatedAssetsScreen {
                                                                0,
                                                                0);
 
-            this.libraryService.call((Integer numberOfAssets) -> {
+            assetQueryService.getNumberOfAssets(query)
+                             .call((Integer numberOfAssets) -> {
                                          int offset = getOffset();
                                          this.view.setPageIndicator(offset + 1,
                                                                     this.getAssetsCount(numberOfAssets,
@@ -442,67 +459,11 @@ public class PopulatedAssetsScreen {
                                          this.view.setTotalPages(this.getTotalPages());
                                          this.checkPaginationButtons();
                                      },
-                                     new DefaultErrorCallback()).getNumberOfAssets(query);
+                                   new DefaultErrorCallback());
         }
     }
 
     private boolean isProjectNull() {
         return this.libraryPlaces.getActiveWorkspaceContext() == null || this.libraryPlaces.getActiveWorkspaceContext().getMainModule() == null;
-    }
-
-    private void reload() {
-        Scheduler.get().scheduleFixedDelay(() -> {
-                                               update();
-                                               return false;
-                                           },
-                                           2000);
-    }
-
-    /**
-     * This class is needed in situations where you open the project screen, but the indexing has not yet finished.
-     * <p/>
-     * It keeps reloading the file list from the backend server until either the page is full or
-     * when the indexing runs out of files and stops.
-     */
-    private class Reloader {
-
-        private boolean active = false;
-        private int previousAmount = -1;
-        private boolean assetsLoadingFinished = false;
-
-        public void check(final List<AssetInfo> assetsList) {
-
-            if (assetsList != null && assetsList.size() <= previousAmount && !assetsList.isEmpty()) {
-                active = false;
-            }
-
-            if (assetsList.isEmpty() && getOffset() == 0 && filterIsNotSet()) {
-                active = true;
-            }
-
-            if (active && getOffset() != 0) {
-                active = false;
-            }
-
-            if (assetsList.size() == pageSize) {
-                active = false;
-            }
-
-            previousAmount = assetsList.size();
-
-            if (active) {
-                reload();
-            } else {
-                this.assetsLoadingFinished = true;
-            }
-        }
-
-        private boolean filterIsNotSet() {
-            return filter == null || filter.trim().isEmpty();
-        }
-
-        public boolean isAssetsLoadingFinished() {
-            return assetsLoadingFinished;
-        }
     }
 }

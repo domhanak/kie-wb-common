@@ -27,9 +27,11 @@ import elemental2.dom.HTMLElement;
 import elemental2.dom.HTMLLIElement;
 import org.jboss.errai.common.client.dom.elemental2.Elemental2DomUtil;
 import org.jboss.errai.ui.client.local.api.elemental2.IsElement;
+import org.jboss.errai.ui.client.local.spi.TranslationService;
 import org.jboss.errai.ui.shared.api.annotations.DataField;
 import org.jboss.errai.ui.shared.api.annotations.EventHandler;
 import org.jboss.errai.ui.shared.api.annotations.Templated;
+import org.kie.workbench.common.screens.library.client.resources.i18n.LibraryConstants;
 import org.kie.workbench.common.screens.projecteditor.client.resources.ProjectEditorResources;
 import org.uberfire.ext.widgets.common.client.common.BusyPopup;
 import org.uberfire.ext.widgets.common.client.common.popups.errors.ErrorPopup;
@@ -40,6 +42,9 @@ public class ProjectView implements ProjectScreen.View,
 
     public static final String ACTIVE = "active";
     private ProjectScreen presenter;
+
+    @Inject
+    private TranslationService translationService;
 
     @Inject
     private Elemental2DomUtil domUtil;
@@ -115,12 +120,29 @@ public class ProjectView implements ProjectScreen.View,
     private HTMLAnchorElement editContributors;
 
     @Inject
+    @DataField("duplicate")
+    private HTMLAnchorElement duplicate;
+
+    @Inject
+    @DataField("reimport")
+    private HTMLAnchorElement reimport;
+
+    @Inject
     @DataField("build")
     private HTMLButtonElement build;
 
     @Inject
     @DataField("deploy")
     private HTMLButtonElement deploy;
+
+    @Inject
+    @DataField("main-actions")
+    private HTMLDivElement mainActions;
+
+    @Override
+    public void addMainAction(final IsElement action) {
+        mainActions.appendChild(action.getElement());
+    }
 
     @Override
     public void setAssetsCount(int count) {
@@ -171,6 +193,21 @@ public class ProjectView implements ProjectScreen.View,
     @Override
     public void setDeleteProjectVisible(boolean visible) {
         this.deleteProject.hidden = !visible;
+    }
+
+    @Override
+    public String getLoadingMessage() {
+        return translationService.getTranslation(LibraryConstants.Loading);
+    }
+
+    @Override
+    public String getItemSuccessfullyDuplicatedMessage() {
+        return translationService.getTranslation(LibraryConstants.ItemSuccessfullyDuplicated);
+    }
+
+    @Override
+    public String getReimportSuccessfulMessage() {
+        return translationService.getTranslation(LibraryConstants.ReimportSuccessful);
     }
 
     @Override
@@ -239,6 +276,16 @@ public class ProjectView implements ProjectScreen.View,
     @EventHandler("add-asset")
     public void addAsset(final ClickEvent event) {
         presenter.addAsset();
+    }
+
+    @EventHandler("duplicate")
+    public void duplicate(final ClickEvent event) {
+        presenter.duplicate();
+    }
+
+    @EventHandler("reimport")
+    public void reimport(final ClickEvent event) {
+        presenter.reimport();
     }
 
     private void activate(HTMLLIElement element) {

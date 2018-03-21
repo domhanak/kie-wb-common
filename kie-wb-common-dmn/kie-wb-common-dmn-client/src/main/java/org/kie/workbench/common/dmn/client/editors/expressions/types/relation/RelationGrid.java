@@ -19,10 +19,7 @@ package org.kie.workbench.common.dmn.client.editors.expressions.types.relation;
 import java.util.ArrayList;
 import java.util.Optional;
 
-import javax.enterprise.event.Event;
-
 import com.ait.lienzo.shared.core.types.EventPropagationMode;
-import org.jboss.errai.common.client.api.IsElement;
 import org.jboss.errai.ui.client.local.spi.TranslationService;
 import org.kie.workbench.common.dmn.api.definition.HasExpression;
 import org.kie.workbench.common.dmn.api.definition.HasName;
@@ -34,14 +31,13 @@ import org.kie.workbench.common.dmn.client.commands.expressions.types.relation.A
 import org.kie.workbench.common.dmn.client.commands.expressions.types.relation.AddRelationRowCommand;
 import org.kie.workbench.common.dmn.client.commands.expressions.types.relation.DeleteRelationColumnCommand;
 import org.kie.workbench.common.dmn.client.commands.expressions.types.relation.DeleteRelationRowCommand;
-import org.kie.workbench.common.dmn.client.events.ExpressionEditorSelectedEvent;
 import org.kie.workbench.common.dmn.client.resources.i18n.DMNEditorConstants;
 import org.kie.workbench.common.dmn.client.widgets.grid.BaseExpressionGrid;
 import org.kie.workbench.common.dmn.client.widgets.grid.columns.factory.TextAreaSingletonDOMElementFactory;
 import org.kie.workbench.common.dmn.client.widgets.grid.columns.factory.TextBoxSingletonDOMElementFactory;
-import org.kie.workbench.common.dmn.client.widgets.grid.controls.container.CellEditorControls;
+import org.kie.workbench.common.dmn.client.widgets.grid.controls.container.CellEditorControlsView;
 import org.kie.workbench.common.dmn.client.widgets.grid.controls.list.HasListSelectorControl;
-import org.kie.workbench.common.dmn.client.widgets.grid.controls.list.ListSelector;
+import org.kie.workbench.common.dmn.client.widgets.grid.controls.list.ListSelectorView;
 import org.kie.workbench.common.dmn.client.widgets.grid.model.DMNGridData;
 import org.kie.workbench.common.dmn.client.widgets.grid.model.DMNGridRow;
 import org.kie.workbench.common.dmn.client.widgets.grid.model.GridCellTuple;
@@ -51,12 +47,11 @@ import org.kie.workbench.common.stunner.core.client.api.SessionManager;
 import org.kie.workbench.common.stunner.core.client.canvas.AbstractCanvasHandler;
 import org.kie.workbench.common.stunner.core.client.command.SessionCommandManager;
 import org.uberfire.ext.wires.core.grids.client.model.GridColumn;
-import org.uberfire.ext.wires.core.grids.client.model.GridData;
 import org.uberfire.ext.wires.core.grids.client.widget.grid.columns.RowNumberColumn;
 
 public class RelationGrid extends BaseExpressionGrid<Relation, RelationUIModelMapper> implements HasListSelectorControl {
 
-    private final ListSelector listSelector;
+    private final ListSelectorView.Presenter listSelector;
 
     private final TextAreaSingletonDOMElementFactory factory;
     private final TextBoxSingletonDOMElementFactory headerFactory;
@@ -69,17 +64,16 @@ public class RelationGrid extends BaseExpressionGrid<Relation, RelationUIModelMa
                         final DMNGridLayer gridLayer,
                         final SessionManager sessionManager,
                         final SessionCommandManager<AbstractCanvasHandler> sessionCommandManager,
-                        final Event<ExpressionEditorSelectedEvent> editorSelectedEvent,
-                        final CellEditorControls cellEditorControls,
+                        final CellEditorControlsView.Presenter cellEditorControls,
                         final TranslationService translationService,
-                        final ListSelector listSelector) {
+                        final ListSelectorView.Presenter listSelector) {
         super(parent,
               hasExpression,
               expression,
               hasName,
               gridPanel,
               gridLayer,
-              new RelationGridData(new DMNGridData(gridLayer),
+              new RelationGridData(new DMNGridData(),
                                    sessionManager,
                                    sessionCommandManager,
                                    expression,
@@ -87,7 +81,6 @@ public class RelationGrid extends BaseExpressionGrid<Relation, RelationUIModelMa
               new RelationGridRenderer(),
               sessionManager,
               sessionCommandManager,
-              editorSelectedEvent,
               cellEditorControls,
               translationService,
               false);
@@ -165,11 +158,6 @@ public class RelationGrid extends BaseExpressionGrid<Relation, RelationUIModelMa
     }
 
     @Override
-    public Optional<IsElement> getEditorControls() {
-        return Optional.empty();
-    }
-
-    @Override
     @SuppressWarnings("unused")
     public java.util.List<ListSelectorItem> getItems(final int uiRowIndex,
                                                      final int uiColumnIndex) {
@@ -192,6 +180,7 @@ public class RelationGrid extends BaseExpressionGrid<Relation, RelationUIModelMa
                                                  cellEditorControls.hide();
                                                  expression.ifPresent(e -> deleteColumn(uiColumnIndex));
                                              }));
+        items.add(new ListSelectorDividerItem());
         items.add(ListSelectorTextItem.build(translationService.format(DMNEditorConstants.RelationEditor_InsertRowAbove),
                                              true,
                                              () -> {
@@ -232,12 +221,18 @@ public class RelationGrid extends BaseExpressionGrid<Relation, RelationUIModelMa
                                                                        relationColumn,
                                                                        index,
                                                                        uiModelMapper,
-                                                                       () -> {
-                                                                           relationColumn.updateWidthOfPeers();
-                                                                           gridPanel.refreshScrollPosition();
-                                                                           gridPanel.updatePanelSize();
-                                                                           gridLayer.batch();
-                                                                       }));
+                                                                       this::synchroniseView));
+        });
+    }
+
+    void deleteColumn(final int index) {
+        expression.ifPresent(relation -> {
+            sessionCommandManager.execute((AbstractCanvasHandler) sessionManager.getCurrentSession().getCanvasHandler(),
+                                          new DeleteRelationColumnCommand(relation,
+                                                                          model,
+                                                                          index,
+                                                                          uiModelMapper,
+                                                                          this::synchroniseView));
         });
     }
 
@@ -250,31 +245,7 @@ public class RelationGrid extends BaseExpressionGrid<Relation, RelationUIModelMa
                                                                     new DMNGridRow(),
                                                                     index,
                                                                     uiModelMapper,
-                                                                    () -> {
-                                                                        gridPanel.refreshScrollPosition();
-                                                                        gridPanel.updatePanelSize();
-                                                                        gridLayer.batch();
-                                                                    }));
-        });
-    }
-
-    void deleteColumn(final int index) {
-        expression.ifPresent(relation -> {
-            sessionCommandManager.execute((AbstractCanvasHandler) sessionManager.getCurrentSession().getCanvasHandler(),
-                                          new DeleteRelationColumnCommand(relation,
-                                                                          model,
-                                                                          index,
-                                                                          uiModelMapper,
-                                                                          () -> {
-                                                                              final int parentColumnIndex = getParentInformation().getColumnIndex();
-                                                                              final GridData parentGridData = getParentInformation().getGridWidget().getModel();
-                                                                              final GridColumn<?> parentColumn = parentGridData.getColumns().get(parentColumnIndex);
-                                                                              parentColumn.setWidth(getWidth() + getPadding() * 2);
-
-                                                                              gridPanel.refreshScrollPosition();
-                                                                              gridPanel.updatePanelSize();
-                                                                              gridLayer.batch();
-                                                                          }));
+                                                                    this::synchroniseView));
         });
     }
 
@@ -284,12 +255,7 @@ public class RelationGrid extends BaseExpressionGrid<Relation, RelationUIModelMa
                                           new DeleteRelationRowCommand(relation,
                                                                        model,
                                                                        index,
-                                                                       uiModelMapper,
-                                                                       () -> {
-                                                                           gridPanel.refreshScrollPosition();
-                                                                           gridPanel.updatePanelSize();
-                                                                           gridLayer.batch();
-                                                                       }));
+                                                                       this::synchroniseView));
         });
     }
 }

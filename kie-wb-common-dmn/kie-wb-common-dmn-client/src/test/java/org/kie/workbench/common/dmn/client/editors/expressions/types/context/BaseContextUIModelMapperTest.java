@@ -33,7 +33,7 @@ import org.kie.workbench.common.dmn.client.editors.expressions.types.ExpressionE
 import org.kie.workbench.common.dmn.client.editors.expressions.types.literal.LiteralExpressionGrid;
 import org.kie.workbench.common.dmn.client.editors.expressions.types.undefined.UndefinedExpressionEditorDefinition;
 import org.kie.workbench.common.dmn.client.widgets.grid.BaseExpressionGrid;
-import org.kie.workbench.common.dmn.client.widgets.grid.controls.list.ListSelector;
+import org.kie.workbench.common.dmn.client.widgets.grid.controls.list.ListSelectorView;
 import org.kie.workbench.common.dmn.client.widgets.grid.model.DMNGridRow;
 import org.kie.workbench.common.dmn.client.widgets.grid.model.GridCellTuple;
 import org.mockito.Mock;
@@ -79,10 +79,10 @@ public abstract class BaseContextUIModelMapperTest<M extends ContextUIModelMappe
     private Supplier<Optional<GridCellValue<?>>> cellValueSupplier;
 
     @Mock
-    protected ListSelector listSelector;
+    protected Supplier<ExpressionEditorDefinitions> expressionEditorDefinitionsSupplier;
 
     @Mock
-    protected Supplier<ExpressionEditorDefinitions> expressionEditorDefinitionsSupplier;
+    protected ListSelectorView.Presenter listSelector;
 
     @Mock
     protected GridWidget gridWidget;
@@ -141,17 +141,6 @@ public abstract class BaseContextUIModelMapperTest<M extends ContextUIModelMappe
     }
 
     protected abstract M getMapper();
-
-    @Test
-    public void testFromDMNModelName() {
-        mapper.fromDMNModel(0, 1);
-        mapper.fromDMNModel(1, 1);
-
-        assertEquals("ii1",
-                     uiModel.getCell(0, 1).getValue().getValue());
-        assertEquals(ContextUIModelMapper.DEFAULT_ROW_CAPTION,
-                     uiModel.getCell(1, 1).getValue().getValue());
-    }
 
     @Test
     public void testFromDMNModelExpression() {

@@ -23,12 +23,12 @@ import org.kie.workbench.common.dmn.api.definition.v1_1.Context;
 import org.kie.workbench.common.dmn.api.definition.v1_1.ContextEntry;
 import org.kie.workbench.common.dmn.api.definition.v1_1.Expression;
 import org.kie.workbench.common.dmn.api.definition.v1_1.InformationItem;
-import org.kie.workbench.common.dmn.api.property.dmn.Name;
 import org.kie.workbench.common.dmn.client.editors.expressions.types.ExpressionEditorDefinition;
 import org.kie.workbench.common.dmn.client.editors.expressions.types.ExpressionEditorDefinitions;
 import org.kie.workbench.common.dmn.client.widgets.grid.BaseExpressionGrid;
-import org.kie.workbench.common.dmn.client.widgets.grid.controls.list.ListSelector;
+import org.kie.workbench.common.dmn.client.widgets.grid.controls.list.ListSelectorView;
 import org.kie.workbench.common.dmn.client.widgets.grid.model.BaseUIModelMapper;
+import org.kie.workbench.common.dmn.client.widgets.grid.model.DMNGridCell;
 import org.kie.workbench.common.dmn.client.widgets.grid.model.GridCellTuple;
 import org.uberfire.ext.wires.core.grids.client.model.GridCellValue;
 import org.uberfire.ext.wires.core.grids.client.model.GridData;
@@ -40,17 +40,17 @@ public class ContextUIModelMapper extends BaseUIModelMapper<Context> {
 
     public static final String DEFAULT_ROW_CAPTION = "default";
 
-    private GridWidget gridWidget;
+    private final GridWidget gridWidget;
 
-    private Supplier<ExpressionEditorDefinitions> expressionEditorDefinitionsSupplier;
+    private final Supplier<ExpressionEditorDefinitions> expressionEditorDefinitionsSupplier;
 
-    private ListSelector listSelector;
+    private final ListSelectorView.Presenter listSelector;
 
     public ContextUIModelMapper(final GridWidget gridWidget,
                                 final Supplier<GridData> uiModel,
                                 final Supplier<Optional<Context>> dmnModel,
                                 final Supplier<ExpressionEditorDefinitions> expressionEditorDefinitionsSupplier,
-                                final ListSelector listSelector) {
+                                final ListSelectorView.Presenter listSelector) {
         super(uiModel,
               dmnModel);
         this.gridWidget = gridWidget;
@@ -72,25 +72,24 @@ public class ContextUIModelMapper extends BaseUIModelMapper<Context> {
                                               () -> new ContextGridCell<>(new BaseGridCellValue<>(rowIndex + 1),
                                                                           listSelector));
                     } else {
-                        uiModel.get().setCellValue(rowIndex,
-                                                   columnIndex,
-                                                   new BaseGridCellValue<>((Integer) null));
+                        uiModel.get().setCell(rowIndex,
+                                              columnIndex,
+                                              () -> new DMNGridCell<>(new BaseGridCellValue<>((Integer) null)));
                     }
                     uiModel.get().getCell(rowIndex,
                                           columnIndex).setSelectionStrategy(RowSelectionStrategy.INSTANCE);
                     break;
                 case NAME:
-                    final InformationItem variable = context.getContextEntry().get(rowIndex).getVariable();
-                    final String name = variable == null ? DEFAULT_ROW_CAPTION : variable.getName().getValue();
                     if (!isLastRow) {
+                        final InformationItem variable = context.getContextEntry().get(rowIndex).getVariable();
                         uiModel.get().setCell(rowIndex,
                                               columnIndex,
-                                              () -> new ContextGridCell<>(new BaseGridCellValue<>(name),
-                                                                          listSelector));
+                                              () -> new InformationItemNameCell(() -> variable,
+                                                                                listSelector));
                     } else {
-                        uiModel.get().setCellValue(rowIndex,
-                                                   columnIndex,
-                                                   new BaseGridCellValue<>(name));
+                        uiModel.get().setCell(rowIndex,
+                                              columnIndex,
+                                              () -> new DMNGridCell<>(new BaseGridCellValue<>(DEFAULT_ROW_CAPTION)));
                     }
                     break;
                 case EXPRESSION:
@@ -112,9 +111,9 @@ public class ContextUIModelMapper extends BaseUIModelMapper<Context> {
                                                   () -> new ContextGridCell<>(new ExpressionCellValue(editor),
                                                                               listSelector));
                         } else {
-                            uiModel.get().setCellValue(rowIndex,
-                                                       columnIndex,
-                                                       new ExpressionCellValue(editor));
+                            uiModel.get().setCell(rowIndex,
+                                                  columnIndex,
+                                                  () -> new DMNGridCell<>(new ExpressionCellValue(editor)));
                         }
                     });
             }
@@ -143,7 +142,8 @@ public class ContextUIModelMapper extends BaseUIModelMapper<Context> {
                     context.getContextEntry()
                             .get(rowIndex)
                             .getVariable()
-                            .setName(new Name(cell.get().orElse(new BaseGridCellValue<>("")).getValue().toString()));
+                            .getName()
+                            .setValue(cell.get().orElse(new BaseGridCellValue<>("")).getValue().toString());
                     break;
                 case EXPRESSION:
                     cell.get().ifPresent(v -> {

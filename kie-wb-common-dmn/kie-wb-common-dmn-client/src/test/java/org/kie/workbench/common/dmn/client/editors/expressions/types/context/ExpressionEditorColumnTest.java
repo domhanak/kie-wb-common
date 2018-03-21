@@ -20,7 +20,6 @@ import java.util.Optional;
 
 import com.ait.lienzo.test.LienzoMockitoTestRunner;
 import org.assertj.core.api.Assertions;
-import org.jboss.errai.common.client.api.IsElement;
 import org.jboss.errai.ui.client.local.spi.TranslationService;
 import org.junit.Before;
 import org.junit.Test;
@@ -29,9 +28,8 @@ import org.kie.workbench.common.dmn.api.definition.HasExpression;
 import org.kie.workbench.common.dmn.api.definition.HasName;
 import org.kie.workbench.common.dmn.api.definition.v1_1.LiteralExpression;
 import org.kie.workbench.common.dmn.client.editors.expressions.mocks.MockHasDOMElementResourcesHeaderMetaData;
-import org.kie.workbench.common.dmn.client.events.ExpressionEditorSelectedEvent;
 import org.kie.workbench.common.dmn.client.widgets.grid.BaseExpressionGrid;
-import org.kie.workbench.common.dmn.client.widgets.grid.controls.container.CellEditorControls;
+import org.kie.workbench.common.dmn.client.widgets.grid.controls.container.CellEditorControlsView;
 import org.kie.workbench.common.dmn.client.widgets.grid.model.BaseUIModelMapper;
 import org.kie.workbench.common.dmn.client.widgets.grid.model.DMNGridColumn;
 import org.kie.workbench.common.dmn.client.widgets.grid.model.DMNGridRow;
@@ -51,7 +49,6 @@ import org.uberfire.ext.wires.core.grids.client.widget.grid.renderers.columns.Gr
 import org.uberfire.ext.wires.core.grids.client.widget.grid.renderers.grids.GridRenderer;
 import org.uberfire.ext.wires.core.grids.client.widget.layer.GridSelectionManager;
 import org.uberfire.ext.wires.core.grids.client.widget.layer.pinning.GridPinnedModeManager;
-import org.uberfire.mocks.EventSourceMock;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -85,10 +82,7 @@ public class ExpressionEditorColumnTest {
     private SessionCommandManager<AbstractCanvasHandler> sessionCommandManager;
 
     @Mock
-    private EventSourceMock<ExpressionEditorSelectedEvent> editorSelectedEvent;
-
-    @Mock
-    private CellEditorControls cellEditorControls;
+    private CellEditorControlsView.Presenter cellEditorControls;
 
     @Mock
     private TranslationService translationService;
@@ -381,7 +375,6 @@ public class ExpressionEditorColumnTest {
                                       renderer,
                                       sessionManager,
                                       sessionCommandManager,
-                                      editorSelectedEvent,
                                       cellEditorControls,
                                       translationService,
                                       false) {
@@ -393,7 +386,7 @@ public class ExpressionEditorColumnTest {
             @Override
             protected void initialiseUiColumns() {
                 for (double width : widthOfCells) {
-                    model.appendColumn(new DMNGridColumn<Object>(headerMetaData, gridColumnRenderer, gridWidget) {{
+                    model.appendColumn(new DMNGridColumn<GridWidget, Object>(headerMetaData, gridColumnRenderer, gridWidget) {{
                         setMinimumWidth(width);
                         setWidth(width);
                     }});
@@ -403,11 +396,6 @@ public class ExpressionEditorColumnTest {
             @Override
             protected void initialiseUiModel() {
 
-            }
-
-            @Override
-            public Optional<IsElement> getEditorControls() {
-                return Optional.empty();
             }
 
             @Override
