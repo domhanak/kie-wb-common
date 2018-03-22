@@ -70,7 +70,7 @@ public class ShapeSetsMenuItemBuilderTest {
         ShapeSetsMenuItemsBuilder builder = new ShapeSetsMenuItemsBuilder(shapeManager);
         BaseMenuCustom menuItem = (BaseMenuCustom)builder.build("Test Name", "Test Prefix", callback);
 
-        verify(shapeSet, times(1)).getDescription();
+        verify(shapeSet, times(2)).getDescription();
 
         Assertions.assertThat(menuItem).isNotNull();
         Assertions.assertThat(menuItem.isEnabled()).isTrue();
