@@ -16,6 +16,9 @@
 
 package org.kie.workbench.common.stunner.client.widgets.menu.dev;
 
+import java.util.ArrayList;
+import java.util.Collection;
+
 import com.google.gwt.dom.client.AnchorElement;
 import com.google.gwtmockito.GwtMockitoTestRunner;
 import com.google.gwtmockito.WithClassesToStub;
@@ -30,9 +33,6 @@ import org.kie.workbench.common.stunner.core.client.api.ShapeManager;
 import org.kie.workbench.common.stunner.core.client.shape.factory.ShapeFactory;
 import org.mockito.Mock;
 import org.uberfire.workbench.model.menu.impl.BaseMenuCustom;
-
-import java.util.ArrayList;
-import java.util.Collection;
 
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -68,7 +68,7 @@ public class ShapeSetsMenuItemBuilderTest {
     @Test
     public void testBuild() {
         ShapeSetsMenuItemsBuilder builder = new ShapeSetsMenuItemsBuilder(shapeManager);
-        BaseMenuCustom menuItem = (BaseMenuCustom)builder.build("Test Name", "Test Prefix", callback);
+        BaseMenuCustom menuItem = (BaseMenuCustom) builder.build("Test Name", "Test Prefix", callback);
 
         verify(shapeSet, times(2)).getDescription();
 
@@ -78,6 +78,5 @@ public class ShapeSetsMenuItemBuilderTest {
         Assertions.assertThat(menuItem.getIdentifier()).contains("Test ID");
         Assertions.assertThat(menuItem.getCaption()).isNotNull();
         Assertions.assertThat(menuItem.getContributionPoint()).isNotNull();
-
     }
 }

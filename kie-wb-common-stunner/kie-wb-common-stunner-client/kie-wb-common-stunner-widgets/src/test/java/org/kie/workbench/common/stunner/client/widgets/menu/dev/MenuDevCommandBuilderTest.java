@@ -1,5 +1,7 @@
 package org.kie.workbench.common.stunner.client.widgets.menu.dev;
 
+import java.lang.annotation.Annotation;
+
 import com.google.gwt.dom.client.AnchorElement;
 import com.google.gwtmockito.GwtMockitoTestRunner;
 import com.google.gwtmockito.WithClassesToStub;
@@ -14,8 +16,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 
-import java.lang.annotation.Annotation;
-
 @RunWith(GwtMockitoTestRunner.class)
 @WithClassesToStub({Text.class, AnchorListItem.class, AnchorElement.class, IOC.class})
 public class MenuDevCommandBuilderTest {
@@ -29,7 +29,6 @@ public class MenuDevCommandBuilderTest {
         menuDevCommandManagedInstances = (ManagedInstance<MenuDevCommand>) provider.provide(new Class[]{MenuDevCommand.class}, new Annotation[]{});
     }
 
-
     @Test
     public void testMenuDevCommandBuilderEnabled() {
         MenuDevCommandsBuilder menuDevCommandsBuilder = new MenuDevCommandsBuilder(menuDevCommandManagedInstances);
@@ -40,6 +39,5 @@ public class MenuDevCommandBuilderTest {
 
         Assertions.assertThat(menuDevCommandsBuilder.isEnabled()).isTrue();
         Assertions.assertThat(menuDevCommandsBuilder.build()).isNotNull();
-
     }
 }
