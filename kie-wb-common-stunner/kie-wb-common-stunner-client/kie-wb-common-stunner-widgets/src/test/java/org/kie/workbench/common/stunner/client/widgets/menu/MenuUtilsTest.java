@@ -91,10 +91,6 @@ public class MenuUtilsTest {
 
         assertEquals(button, hasEnabledIsWidget.asWidget());
         assertEquals(button.getTitle(), hasEnabledIsWidget.asWidget().getTitle());
-        assertEquals(false, hasEnabledIsWidget.isEnabled());
-
-        hasEnabledIsWidget.setEnabled(true);
-        when(hasEnabledIsWidget.isEnabled()).thenReturn(true);
-        assertEquals(true, hasEnabledIsWidget.isEnabled());
+        assertFalse(hasEnabledIsWidget.isEnabled());
     }
 }

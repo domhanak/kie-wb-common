@@ -14,13 +14,11 @@ import org.jboss.errai.ioc.client.container.IOC;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mock;
 
 @RunWith(GwtMockitoTestRunner.class)
 @WithClassesToStub({Text.class, AnchorListItem.class, AnchorElement.class, IOC.class})
 public class MenuDevCommandBuilderTest {
 
-    @Mock
     ManagedInstance<MenuDevCommand> menuDevCommandManagedInstances;
 
     @Before
