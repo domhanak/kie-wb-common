@@ -74,9 +74,8 @@ public class ShapeSetsMenuItemBuilderTest {
 
         Assertions.assertThat(menuItem).isNotNull();
         Assertions.assertThat(menuItem.isEnabled()).isTrue();
-        Assertions.assertThat(menuItem.getOrder()).isEqualTo(0 /* Only item expect it to be 1st */);
-        Assertions.assertThat(menuItem.getIdentifier()).contains("Test ID");
-        Assertions.assertThat(menuItem.getCaption()).isNotNull();
-        Assertions.assertThat(menuItem.getContributionPoint()).isNotNull();
+        Assertions.assertThat(menuItem.getResourceActions()).isEmpty();
+        Assertions.assertThat(menuItem.getCaption()).isNullOrEmpty();
+        Assertions.assertThat(menuItem.getContributionPoint()).isNullOrEmpty();
     }
 }
